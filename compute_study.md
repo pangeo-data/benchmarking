@@ -28,7 +28,8 @@ Plot each operation on its own
 
 ### Dask Setup & Cluster Size
 
-- Assuming 1 dask worker per node (on Cheyenne)
+- Everything below assumes 1 dask worker per node (on Cheyenne)
+- Duplicate each study for 2, 4, 8, and 16 workers per node (reducing chunk size proportionally)
 - Single threaded
 
 ### Weak Scaling Parameters
@@ -60,3 +61,11 @@ Corresponding Chunk Sizes:
 TOTAL Number of Runs:  15 (3 strong scaling curves)
 
 Ideally, this produces 3 lines that half time when nodes double.
+
+### Framework for Automation
+
+- Run entire suite of jobs using a script and dask-jobqueue
+  - Need to wait for resources to be available before proceeding
+  - Need to rerun multiple times (to get good statistics)
+- Helper function to generate fake data (persisted on workers) given chunk size & number of workers
+- Helper functions for each computation operation (acting on data)
