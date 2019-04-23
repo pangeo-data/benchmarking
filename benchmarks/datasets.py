@@ -14,6 +14,7 @@ def timeseries(
     lon=384,
     start='1980-01-01',
     freq='1D',
+    nan=False,
 ):
     """ Create synthetic Xarray dataset filled with random
     data.
@@ -37,22 +38,26 @@ def timeseries(
 
     freq : string
         String like '2s' or '1H' or '12W' for the time series frequency
+    nan : bool
+         Whether to include nan in generated data
 
 
     Examples
     ---------
 
     >>> from benchmarks.datasets import timeseries
-    >>> ds = timeseries()
+    >>> ds = timeseries('128MB', 5, chunk_over_time_dim=False, lat=500, lon=600)
     >>> ds
     <xarray.Dataset>
-    Dimensions:  (lat: 320, lon: 384, time: 131)
+    Dimensions:  (lat: 500, lon: 600, time: 267)
     Coordinates:
-    * time     (time) datetime64[ns] 1980-01-31 1980-02-29 ... 1990-11-30
-    * lon      (lon) float64 0.0 0.9399 1.88 2.82 3.76 ... 357.2 358.1 359.1 360.0
-    * lat      (lat) float64 0.0 0.5643 1.129 1.693 ... 178.3 178.9 179.4 180.0
+    * time     (time) datetime64[ns] 1980-01-01 1980-01-02 ... 1980-09-23
+    * lon      (lon) float64 -180.0 -179.4 -178.8 -178.2 ... 178.8 179.4 180.0
+    * lat      (lat) float64 -90.0 -89.64 -89.28 -88.92 ... 88.92 89.28 89.64 90.0
     Data variables:
-        sst      (time, lon, lat) float64 dask.array<shape=(131, 384, 320), chunksize=(109, 384, 320)>
+        sst      (time, lon, lat) float64 dask.array<shape=(267, 600, 500), chunksize=(267, 245, 245)>
+    Attributes:
+        history:  created for compute benchmarking
     """
 
     dt = np.dtype('f8')
@@ -72,7 +77,7 @@ def timeseries(
     lats = xr.DataArray(np.linspace(start=-90, stop=90, num=lat), dims=['lat'])
     lons = xr.DataArray(np.linspace(start=-180, stop=180, num=lon), dims=['lon'])
     times = xr.DataArray(pd.date_range(start=start, freq=freq, periods=timesteps), dims=['time'])
-    random_data = randn(shape=shape, chunks=chunks)
+    random_data = randn(shape=shape, chunks=chunks, nan=nan)
     ds = xr.DataArray(
         random_data,
         dims=['time', 'lon', 'lat'],
@@ -86,7 +91,9 @@ def timeseries(
     return ds
 
 
-def randn(shape, chunks=None, seed=0):
+def randn(shape, chunks=None, nan=False, seed=0):
     rng = da.random.RandomState(seed)
     x = 5 + 3 * rng.standard_normal(shape, chunks=chunks)
+    if nan:
+        x = da.where(x < 0, np.nan, x)
     return x
