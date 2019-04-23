@@ -13,9 +13,10 @@ def timeseries(
     lat=320,
     lon=384,
     start='1980-01-01',
-    freq='1M',
+    freq='1D',
 ):
-    """ Create timeseries xarray dataset with random data
+    """ Create synthetic Xarray dataset filled with random
+    data.
 
     Parameters
     ----------
@@ -36,6 +37,7 @@ def timeseries(
 
     freq : string
         String like '2s' or '1H' or '12W' for the time series frequency
+
 
     Examples
     ---------
@@ -61,20 +63,30 @@ def timeseries(
     timesteps = math.ceil(size / (lat * lon))
     shape = (timesteps, lon, lat)
     if chunk_over_time_dim:
-        x = math.ceil(chunk_size / (lon * lon * itemsize))
+        x = math.ceil(chunk_size / (lon * lat * itemsize))
         chunks = (x, lon, lat)
     else:
         x = math.ceil(math.sqrt(chunk_size / (timesteps * itemsize)))
         chunks = (timesteps, x, x)
 
-    lats = xr.DataArray(np.linspace(start=0, stop=180, num=lat), dims=['lat'])
-    lons = xr.DataArray(np.linspace(start=0, stop=360, num=lon), dims=['lon'])
+    lats = xr.DataArray(np.linspace(start=-90, stop=90, num=lat), dims=['lat'])
+    lons = xr.DataArray(np.linspace(start=-180, stop=180, num=lon), dims=['lon'])
     times = xr.DataArray(pd.date_range(start=start, freq=freq, periods=timesteps), dims=['time'])
-    random_data = da.random.random(shape, chunks=chunks)
-    dset = xr.DataArray(
+    random_data = randn(shape=shape, chunks=chunks)
+    ds = xr.DataArray(
         random_data,
         dims=['time', 'lon', 'lat'],
         coords={'time': times, 'lon': lons, 'lat': lats},
         name='sst',
+        encoding=None,
+        attrs={'units': 'baz units', 'description': 'a description'},
     ).to_dataset()
-    return dset
+    ds.attrs = {'history': 'created for compute benchmarking'}
+
+    return ds
+
+
+def randn(shape, chunks=None, seed=0):
+    rng = da.random.RandomState(seed)
+    x = 5 + 3 * rng.standard_normal(shape, chunks=chunks)
+    return x
