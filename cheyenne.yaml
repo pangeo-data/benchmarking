@@ -1,0 +1,13 @@
+weak:
+  worker_per_node:
+    - 1
+  number_of_nodes:
+    - 1
+    - 2
+    - 4
+  chunk_size:
+    - 64MB
+    - 128MB
+    - 256MB
+    - 512MB
+    - 1024MB
