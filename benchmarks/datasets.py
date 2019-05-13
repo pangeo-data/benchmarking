@@ -8,7 +8,8 @@ import pandas as pd
 
 def timeseries(
     chunk_size='128 MB',
-    n_workers=1,
+    num_nodes=1,
+    worker_per_node=1,
     chunk_over_time_dim=True,
     lat=320,
     lon=384,
@@ -23,8 +24,11 @@ def timeseries(
     ----------
     chunk_size : str
           chunk size in bytes, kilo, mega or any factor of bytes
-    n_workers : int
-           number of dask workers
+    num_nodes : int
+           number of compute nodes
+    worker_per_node: int
+           number of dask workers per node
+
     chunk_over_time_dim : bool, default True
            Whether to chunk across time dimension or horizontal dimensions (lat, lon)
     lat : int
@@ -63,7 +67,7 @@ def timeseries(
     dt = np.dtype('f8')
     itemsize = dt.itemsize
     chunk_size = parse_bytes(chunk_size)
-    total_bytes = chunk_size * n_workers
+    total_bytes = chunk_size * num_nodes * worker_per_node
     size = total_bytes / itemsize
     timesteps = math.ceil(size / (lat * lon))
     shape = (timesteps, lon, lat)
