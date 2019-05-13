@@ -1,0 +1,19 @@
+machine: cheyenne
+parameters:
+  worker_per_node:
+    - 4
+    - 8
+  number_of_nodes:
+    - 1
+    - 2
+    - 4
+    - 8
+  chunk_size:
+    - 8MB
+    - 16MB
+    - 32MB
+    - 64MB
+    - 128MB
+    - 256MB
+
+output_dir: ./results/cheyenne
