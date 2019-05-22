@@ -15,5 +15,9 @@ parameters:
     - 64MB
     - 128MB
     - 256MB
+  chunking_scheme:
+    - spatial
+    - temporal
+    - auto
 
-output_dir: ./results/cheyenne
+output_dir: ./results
