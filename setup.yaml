@@ -1,6 +1,8 @@
 machine: cheyenne
 parameters:
   worker_per_node:
+    - 1
+    - 2
     - 4
     - 8
   number_of_nodes:
