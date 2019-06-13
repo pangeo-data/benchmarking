@@ -1,10 +1,11 @@
-name: pangeo
+name: pangeobench
 channels:
   - defaults
   - conda-forge
+
 dependencies:
   - appdirs=1.4.3
-  - appnope=0.1.0
+  - appnope=0.1.*
   - arrow-cpp=0.11.1
   - asn1crypto=0.24.0
   - attrs=19.1.0
@@ -69,11 +70,11 @@ dependencies:
   - libboost=1.67.0
   - libcblas=3.8.0
   - libcxx=4.0.1
-  - libcxxabi=4.0.1
+  - libcxxabi=4.0.*
   - libedit=3.1.20181209
   - libevent=2.1.8
   - libffi=3.2.1
-  - libgfortran=3.0.1
+  - libgfortran=3.0.*
   - libiconv=1.15
   - liblapack=3.8.0
   - libopenblas=0.3.6
@@ -103,7 +104,7 @@ dependencies:
   - olefile=0.46
   - openblas=0.3.6
   - openblas-devel=0.3.6
-  - openmpi=1.6.3
+  - openmpi=1.6.*
   - openssl=1.1.1c
   - packaging=19.0
   - pandas=0.24.2
