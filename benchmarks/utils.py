@@ -68,6 +68,9 @@ class AbstractSetup(ABC):
         """ Runs the benchmarks using configurations from a YAML file
         """
         machine = self.params['machine']
+        queue = self.params['queue']
+        walltime = self.params['walltime']
+        memory = self.params['memory']
         output_dir = self.params['output_dir']
         os.makedirs(output_dir, exist_ok=True)
         parameters = self.params['parameters']
@@ -77,7 +80,7 @@ class AbstractSetup(ABC):
         chsz = parameters['chunk_size']
 
         for wpn in worker_per_node:
-            self.create_cluster(worker_per_node=wpn)
+            self.create_cluster(worker_per_node=wpn,walltime=walltime,memory=memory,queue=queue)
             for num in num_nodes:
                 self.client.cluster.scale(num * wpn)
                 cluster_wait(self.client, num * wpn)
@@ -127,12 +130,12 @@ class AbstractSetup(ABC):
 
 
 class PBSSetup(AbstractSetup):
-    def create_cluster(self, worker_per_node, walltime='00:30:00', memory='109GB', queue='regular'):
+    def create_cluster(self, worker_per_node, walltime, memory, queue):
+    #def create_cluster(self, worker_per_node):
         """ Creates a dask cluster using dask_jobqueue
         """
 
         from dask_jobqueue import PBSCluster
-
         cluster = PBSCluster(
             walltime=walltime,
             cores=worker_per_node,
@@ -141,3 +144,4 @@ class PBSSetup(AbstractSetup):
             queue=queue,
         )
         self.client = Client(cluster)
+        print(cluster.job_script())
