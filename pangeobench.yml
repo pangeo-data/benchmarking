@@ -1,0 +1,17 @@
+name: pangeobench
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.6
+  - xarray
+  - jupyterlab
+  - nbserverproxy
+  - dask
+  - distributed
+  - mpi4py
+  - dask-jobqueue
+  - hvplot
+  - nodejs
+  - dask_labextension

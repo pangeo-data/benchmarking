@@ -1,0 +1,28 @@
+machine: hal
+queue: batch
+walltime: 1:00:00
+memory: 64gb
+parameters:
+  worker_per_node:
+    - 1
+    - 2
+    - 4
+    - 8
+  number_of_nodes:
+    - 1
+    - 2
+    - 4
+    - 8
+  chunk_size:
+    - 8MB
+    - 16MB
+    - 32MB
+    - 64MB
+    - 128MB
+    - 256MB
+  chunking_scheme:
+    - spatial
+    - temporal
+    - auto
+
+output_dir: ./results-hal
