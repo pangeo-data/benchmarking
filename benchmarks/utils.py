@@ -70,20 +70,25 @@ class AbstractSetup(ABC):
         machine = self.params['machine']
         queue = self.params['queue']
         walltime = self.params['walltime']
-        memory = self.params['memory']
+        maxmemory_per_node = self.params['maxmemory_per_node']
+        maxcore_per_node = self.params['maxcore_per_node']
         output_dir = self.params['output_dir']
         os.makedirs(output_dir, exist_ok=True)
         parameters = self.params['parameters']
         num_nodes = parameters['number_of_nodes']
-        worker_per_node = parameters['worker_per_node']
+        #worker_per_node = parameters['worker_per_node']
         chunking_schemes = parameters['chunking_scheme']
         chsz = parameters['chunk_size']
 
-        for wpn in worker_per_node:
-            self.create_cluster(worker_per_node=wpn,walltime=walltime,memory=memory,queue=queue)
+        #for wpn in worker_per_node:
+        for wpn in range(1,maxcore_per_node):
+            worker_per_node=wpn
+            self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn)
             for num in num_nodes:
-                self.client.cluster.scale(num * wpn)
-                cluster_wait(self.client, num * wpn)
+                self.client.cluster.scale(num )
+                #self.client.cluster.scale(num * wpn)
+                cluster_wait(self.client, num )
+                #cluster_wait(self.client, num * wpn)
                 timer = DiagnosticTimer()
                 dfs = []
                 if verbose:
@@ -130,7 +135,8 @@ class AbstractSetup(ABC):
 
 
 class PBSSetup(AbstractSetup):
-    def create_cluster(self, worker_per_node, walltime, memory, queue):
+    def create_cluster(self, maxcore, walltime, memory, queue,wpn):
+        print(wpn)
     #def create_cluster(self, worker_per_node):
         """ Creates a dask cluster using dask_jobqueue
         """
@@ -138,9 +144,9 @@ class PBSSetup(AbstractSetup):
         from dask_jobqueue import PBSCluster
         cluster = PBSCluster(
             walltime=walltime,
-            cores=worker_per_node,
+            cores=maxcore,
             memory=memory,
-            processes=worker_per_node,
+            processes=wpn,
             queue=queue,
         )
         self.client = Client(cluster)

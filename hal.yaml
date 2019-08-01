@@ -1,13 +1,9 @@
 machine: hal
 queue: batch
 walltime: 1:00:00
-memory: 64gb
+maxmemory_per_node: 128gb
+maxcore_per_node: 24
 parameters:
-  worker_per_node:
-    - 1
-    - 2
-    - 4
-    - 8
   number_of_nodes:
     - 1
     - 2
@@ -25,4 +21,4 @@ parameters:
     - temporal
     - auto
 
-output_dir: ./results-hal
+output_dir: ./results-haltest
