@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from distributed import Client
 
 
-warnings.simplefilter('ignore')  # Silence warnings
+#warnings.simplefilter('ignore')  # Silence warnings
 import os
 
 
@@ -65,41 +65,46 @@ class AbstractSetup(ABC):
         pass
 
     def run(self, verbose=False):
-        """ Runs the benchmarks using configurations from a YAML file
-        """
+        if verbose:
+            print ('read configuration yaml file here to run the benchmarks ')
         machine = self.params['machine']
+        #machine_specifications = self.params['machine_specifications']
         queue = self.params['queue']
         walltime = self.params['walltime']
         maxmemory_per_node = self.params['maxmemory_per_node']
         maxcore_per_node = self.params['maxcore_per_node']
+        spil = self.params['spil']
         output_dir = self.params['output_dir']
         os.makedirs(output_dir, exist_ok=True)
         parameters = self.params['parameters']
+        num_workers = parameters['number_of_workers_per_nodes']
         num_nodes = parameters['number_of_nodes']
-        #worker_per_node = parameters['worker_per_node']
         chunking_schemes = parameters['chunking_scheme']
         chsz = parameters['chunk_size']
 
-        #for wpn in worker_per_node:
-        for wpn in range(1,maxcore_per_node):
+        for wpn in num_workers:
+        #for wpn in range(1,maxcore_per_node,step_core):
             worker_per_node=wpn
-            self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn)
+            self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn,verbose=verbose)
             for num in num_nodes:
-                self.client.cluster.scale(num )
-                #self.client.cluster.scale(num * wpn)
-                cluster_wait(self.client, num )
-                #cluster_wait(self.client, num * wpn)
+                #self.client.cluster.scale(num )
+                self.client.cluster.scale(num * wpn)
+                if verbose:
+                    print('start cluster_wait')
+                #cluster_wait(self.client, num )
+                cluster_wait(self.client, num * wpn)
                 timer = DiagnosticTimer()
                 dfs = []
                 if verbose:
-                    print(self.client.cluster)
-                    print(self.client.cluster.dashboard_link)
+                    print( f'dask cluster client started  with {num} nodes')
+                    print( 'client cluster ')
+                    print(len(self.client.cluster.scheduler.workers))
                 for chunk_size in chsz:
 
                     for chunking_scheme in chunking_schemes:
                         if verbose:
                             print(
-                                f'worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}'
+                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}'
                             )
                         ds = timeseries(
                             chunk_size=chunk_size,
@@ -109,6 +114,9 @@ class AbstractSetup(ABC):
                         ).persist()
                         wait(ds)
                         dataset_size = format_bytes(ds.nbytes)
+                        if verbose:
+                            print(ds)
+                            print('\n datasize: %.1f GB' %(ds.nbytes / 1e9))
                         for op in self.computations:
                             with timer.time(
                                 operation=op.__name__,
@@ -118,36 +126,60 @@ class AbstractSetup(ABC):
                                 num_nodes=num,
                                 chunking_scheme=chunking_scheme,
                                 machine=machine,
+                                maxmemory_per_node=maxmemory_per_node,
+                                maxcore_per_node=maxcore_per_node,
+                                spil=spil,
                             ):
                                 wait(op(ds).persist())
-
+                        if verbose:
+                            print('kills ds and every other dependent computation')
+                            #print('restarting all worker process before starting series of bench')
+                        #self.client.restart()  # hard restart of all worker processes.
                         self.client.cancel(ds)  # kills ds, and every other dependent computation
                     temp_df = timer.dataframe()
                     dfs.append(temp_df)
 
                 filename = f"{output_dir}/compute_study_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M.%S')}_.csv"
+                if verbose:
+                    print('create bench mark result file: ',filename)
                 df = pd.concat(dfs)
                 df.to_csv(filename, index=False)
 
-                self.client.restart()  # hard restart of all worker processes.
+            print('client and cluster close before changing number of workers per nodes')
             self.client.cluster.close()
+            print('client cluster close finished')
             self.client.close()
+            print('client  close finished')
 
 
 class PBSSetup(AbstractSetup):
-    def create_cluster(self, maxcore, walltime, memory, queue,wpn):
-        print(wpn)
+    def create_cluster(self, maxcore, walltime, memory, queue,wpn,verbose):
     #def create_cluster(self, worker_per_node):
-        """ Creates a dask cluster using dask_jobqueue
-        """
+        if verbose:
+            print( """ Creates a dask cluster using dask_jobqueue """)
+            print( 'memory size for each node: ', memory)
+            print( 'number of cores for each node: ', maxcore)
+            print( 'number of workers for each node: ', wpn)
+            #print( 'to do here, write somewhere the distributed spil config, bandwidth etc ?')
+            
 
         from dask_jobqueue import PBSCluster
         cluster = PBSCluster(
-            walltime=walltime,
             cores=maxcore,
             memory=memory,
             processes=wpn,
+            local_directory='$TMPDIR',
+            interface='ib0',
             queue=queue,
+            walltime=walltime,
+            job_extra=["-j oe"],
         )
+       #     extra=['--memory-target-fraction 0.95', '--memory-pause-fraction 0.9']
         self.client = Client(cluster)
-        print(cluster.job_script())
+        if verbose:
+            print( 'job script created by dask_jobqueue: starts--------')
+            print(cluster.job_script())
+            print( 'job script created by dask_jobqueue: ends --------')
+            #print(cluster.job_file())
+            print( 'dask cluster dashboard_link : ' )
+            print(self.client.cluster.dashboard_link)

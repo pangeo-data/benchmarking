@@ -1,0 +1,21 @@
+machine: hal24
+queue: batch
+walltime: 1:00:00
+maxmemory_per_node: 128gb
+maxcore_per_node: 24
+spil: false
+parameters:
+  number_of_workers_per_nodes:
+    - 12
+  number_of_nodes:
+    - 2
+    - 4
+  chunk_size:
+    - 128MB
+    - 256MB
+  chunking_scheme:
+    - spatial
+    - temporal
+    - auto
+
+output_dir: ./results-hal24test
