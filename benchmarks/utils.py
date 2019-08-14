@@ -174,7 +174,7 @@ class PBSSetup(AbstractSetup):
             walltime=walltime,
             job_extra=["-j oe"],
             env_extra=["OMP_NUM_THREADS=1"],     # These two lines are to ensure that each benchmark workers only use one threads for benchmark.
-            extra=['--nthreads 1'],
+            extra=['--nthreads 1'],   # in the job script one sees twice --nthreads, but it get overwritten by --nthreads 1 
         )
        #     extra=['--memory-target-fraction 0.95', '--memory-pause-fraction 0.9']
         self.client = Client(cluster)
