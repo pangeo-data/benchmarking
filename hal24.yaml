@@ -6,26 +6,23 @@ maxcore_per_node: 24
 spil: false
 parameters:
   number_of_workers_per_nodes:
-    - 4
-    - 8
-    - 12
-    - 16
-    - 20
-    - 24
+    - 1
+  number_of_threads_per_workers:
+    - 1
   number_of_nodes:
+    - 1
     - 2
     - 4
-    - 6
     - 8
+    - 16
   chunk_size:
-    - 64MB
-    - 128MB
-    - 256MB
     - 512MB
     - 1024MB
+    - 2048MB
+    - 4096MB
   chunking_scheme:
     - spatial
     - temporal
     - auto
 
-output_dir: ./results-hal24
+output_dir: ./results-hal24-1thread

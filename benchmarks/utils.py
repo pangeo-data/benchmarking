@@ -78,11 +78,13 @@ class AbstractSetup(ABC):
         os.makedirs(output_dir, exist_ok=True)
         parameters = self.params['parameters']
         num_workers = parameters['number_of_workers_per_nodes']
+        num_threads = parameters['number_of_threads_per_workers']
         num_nodes = parameters['number_of_nodes']
         chunking_schemes = parameters['chunking_scheme']
         chsz = parameters['chunk_size']
 
         for wpn in num_workers:
+            tpw = 1
         #for wpn in range(1,maxcore_per_node,step_core):
             worker_per_node=wpn
             self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn,verbose=verbose)
@@ -123,6 +125,7 @@ class AbstractSetup(ABC):
                                 chunk_size=chunk_size,
                                 dataset_size=dataset_size,
                                 worker_per_node=wpn,
+                                threads_per_worker=tpw,
                                 num_nodes=num,
                                 chunking_scheme=chunking_scheme,
                                 machine=machine,
