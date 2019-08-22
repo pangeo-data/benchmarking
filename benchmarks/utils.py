@@ -73,6 +73,7 @@ class AbstractSetup(ABC):
         walltime = self.params['walltime']
         maxmemory_per_node = self.params['maxmemory_per_node']
         maxcore_per_node = self.params['maxcore_per_node']
+        chunk_per_worker = self.params['chunk_per_worker']
         spil = self.params['spil']
         output_dir = self.params['output_dir']
         os.makedirs(output_dir, exist_ok=True)
@@ -106,9 +107,10 @@ class AbstractSetup(ABC):
                     for chunking_scheme in chunking_schemes:
                         if verbose:
                             print(
-                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}'
+                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}, chunk per worker={chunk_per_worker}'
                             )
                         ds = timeseries(
+                            chunk_per_worker=chunk_per_worker,
                             chunk_size=chunk_size,
                             chunking_scheme=chunking_scheme,
                             num_nodes=num,
@@ -123,6 +125,7 @@ class AbstractSetup(ABC):
                             with timer.time(
                                 operation=op.__name__,
                                 chunk_size=chunk_size,
+                                chunk_per_worker=chunk_per_worker,
                                 dataset_size=dataset_size,
                                 worker_per_node=wpn,
                                 threads_per_worker=tpw,

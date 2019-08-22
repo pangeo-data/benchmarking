@@ -1,19 +1,14 @@
-machine: hal
+machine: halfull
 queue: batch
 walltime: 1:00:00
-maxmemory_per_node: 128gb
-maxcore_per_node: 24
+maxmemory_per_node: 12gb
+maxcore_per_node: 2
+step_core: 1
 parameters:
   number_of_nodes:
     - 1
     - 2
-    - 4
-    - 8
   chunk_size:
-    - 8MB
-    - 16MB
-    - 32MB
-    - 64MB
     - 128MB
     - 256MB
   chunking_scheme:
