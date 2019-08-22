@@ -8,6 +8,7 @@ import dask
 
 
 def timeseries(
+    chunk_per_worker=10,
     chunk_size='128 MB',
     num_nodes=1,
     worker_per_node=1,
@@ -23,6 +24,9 @@ def timeseries(
 
     Parameters
     ----------
+    chunk_per_worker : int 
+          number of chunk placed per worker.  
+          see docs.dask.org, best practices, for chunk.  Best chunk size is around 100M but, each worker can have many chunk, which automate the parallelism in dask.  
     chunk_size : str
           chunk size in bytes, kilo, mega or any factor of bytes
     num_nodes : int
@@ -70,7 +74,8 @@ def timeseries(
     dt = np.dtype('f8')
     itemsize = dt.itemsize
     chunk_size = parse_bytes(chunk_size)
-    total_bytes = chunk_size * num_nodes * worker_per_node
+    total_bytes = chunk_size * num_nodes * worker_per_node * chunk_per_worker
+    #total_bytes = chunk_size * num_nodes * worker_per_node 
     size = total_bytes / itemsize
     timesteps = math.ceil(size / (lat * lon))
     shape = (timesteps, lon, lat)
