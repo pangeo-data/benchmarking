@@ -83,7 +83,13 @@ class AbstractSetup(ABC):
         num_nodes = parameters['number_of_nodes']
         chunking_schemes = parameters['chunking_scheme']
         chsz = parameters['chunk_size']
-
+        # add variable for IO bench testing directories 
+        # create possibility as . In case nothing was specified?
+        # add here switch  true false from yaml?
+        # or add operation part ? : 
+        # IO bench 1–2, time to mesure how long it take to write zarr file(2. Netcdf)
+        # IO bench 3-4 time to read from zarr (4from netcdf) file then make each operations ( without persiste)
+        
         for wpn in num_workers:
             tpw = 1
         #for wpn in range(1,maxcore_per_node,step_core):
