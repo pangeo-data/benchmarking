@@ -40,6 +40,8 @@ $ tree ./benchmark-configs/
 benchmark-configs/
 ├── cheyenne.yaml
 └── hal.yaml
+└── wrangler.yaml
+
 ```
 
 In case you are interested in running the benchmarks on another system, you will need to create a new YAML file for your system with the right configurations. See the existing config files for reference.
