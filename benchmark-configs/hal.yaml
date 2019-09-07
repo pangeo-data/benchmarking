@@ -1,4 +1,5 @@
 machine: hal24
+job_scheduler: pbs
 queue: batch
 walltime: 1:00:00
 maxmemory_per_node: 128gb
@@ -7,8 +8,7 @@ spil: false
 parameters:
   number_of_workers_per_nodes:
     - 1
-  number_of_threads_per_workers:
-    - 1
+  number_of_threads_per_workers: 1
   number_of_nodes:
     - 1
     - 2

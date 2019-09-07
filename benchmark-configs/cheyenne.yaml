@@ -1,15 +1,15 @@
 machine: cheyenne
+job_scheduler: pbs
 queue: regular
 walltime: 1:00:00
-maxmemory_per_node: 64gb
+maxmemory_per_node: 109gb
 maxcore_per_node: 36
 chunk_per_worker: 10
 spil: false
 parameters:
   number_of_workers_per_nodes:
     - 1
-  number_of_threads_per_workers:
-    - 1
+  number_of_threads_per_workers: 1
   number_of_nodes:
     - 1
     - 2

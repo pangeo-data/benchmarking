@@ -1,11 +1,10 @@
 from contextlib import contextmanager
 from time import time, sleep
 from .datasets import timeseries
-from .ops import global_mean, temporal_mean, climatology, anomaly
+from .ops import spatial_mean, temporal_mean, climatology, anomaly
 from distributed import wait
 from distributed.utils import format_bytes
 import datetime
-from abc import ABC, abstractmethod
 from distributed import Client
 import pandas as pd
 
@@ -53,7 +52,7 @@ def cluster_wait(client, n_workers):
             break
 
 
-class AbstractSetup(ABC):
+class Runner:
     def __init__(self, input_file):
         import yaml
 
@@ -62,18 +61,54 @@ class AbstractSetup(ABC):
                 self.params = yaml.safe_load(f)
         except Exception as exc:
             raise exc
-        self.computations = [global_mean, temporal_mean, climatology, anomaly]
+        self.computations = [spatial_mean, temporal_mean, climatology, anomaly]
         self.client = None
 
-    @abstractmethod
-    def create_cluster(self):
+    def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
         """ Creates a dask cluster using dask_jobqueue
         """
-        pass
+        logger.warning("Creating a dask cluster using dask_jobqueue")
+        logger.warning(f"Job Scheduler: {job_scheduler}")
+        logger.warning(f"Memory size for each node: {memory}")
+        logger.warning(f"Number of cores for each node: {maxcore}")
+        logger.warning(f"Number of workers for each node: {wpn}")
+
+        from dask_jobqueue import PBSCluster, SLURMCluster
+
+        job_schedulers = {"pbs": PBSCluster, "slurm": SLURMCluster}
+
+        # Note about OMP_NUM_THREADS=1, --threads 1:
+        # These two lines are to ensure that each benchmark workers
+        # only use one threads for benchmark.
+        # in the job script one sees twice --nthreads,
+        # but it get overwritten by --nthreads 1
+        cluster = job_schedulers[job_scheduler](
+            cores=maxcore,
+            memory=memory,
+            processes=wpn,
+            local_directory="$TMPDIR",
+            interface="ib0",
+            queue=queue,
+            walltime=walltime,
+            job_extra=["-j oe"],
+            env_extra=["OMP_NUM_THREADS=1"],
+            extra=["--nthreads 1"],
+        )
+
+        self.client = Client(cluster)
+
+        logger.warning(
+            "************************************\n"
+            "Job script created by dask_jobqueue:\n"
+            f"{cluster.job_script()}\n"
+            "***************************************"
+        )
+        logger.warning(f"Dask cluster dashboard_link: {self.client.cluster.dashboard_link}")
 
     def run(self):
         logger.warning("Reading configuration YAML config file")
         machine = self.params["machine"]
+        job_scheduler = self.params["job_scheduler"]
         queue = self.params["queue"]
         walltime = self.params["walltime"]
         maxmemory_per_node = self.params["maxmemory_per_node"]
@@ -93,6 +128,7 @@ class AbstractSetup(ABC):
 
         for wpn in num_workers:
             self.create_cluster(
+                job_scheduler=job_scheduler,
                 maxcore=maxcore_per_node,
                 walltime=walltime,
                 memory=maxmemory_per_node,
@@ -166,41 +202,3 @@ class AbstractSetup(ABC):
             logger.warning("Client shutdown finished")
 
         logger.warning("=====> The End <=========")
-
-
-class PBSSetup(AbstractSetup):
-    def create_cluster(self, maxcore, walltime, memory, queue, wpn):
-        logger.warning("Creating a dask cluster using dask_jobqueue")
-        logger.warning(f"memory size for each node: {memory}")
-        logger.warning(f"number of cores for each node: {maxcore}")
-        logger.warning(f"number of workers for each node: {wpn}")
-
-        from dask_jobqueue import PBSCluster
-
-        # Note about OMP_NUM_THREADS=1, --threads 1:
-        # These two lines are to ensure that each benchmark workers
-        # only use one threads for benchmark.
-        # in the job script one sees twice --nthreads,
-        # but it get overwritten by --nthreads 1
-        cluster = PBSCluster(
-            cores=maxcore,
-            memory=memory,
-            processes=wpn,
-            local_directory="$TMPDIR",
-            interface="ib0",
-            queue=queue,
-            walltime=walltime,
-            job_extra=["-j oe"],
-            env_extra=["OMP_NUM_THREADS=1"],
-            extra=["--nthreads 1"],
-        )
-
-        self.client = Client(cluster)
-
-        logger.warning(
-            "************************************\n"
-            "Job script created by dask_jobqueue:\n"
-            f"{cluster.job_script()}\n"
-            "***************************************"
-        )
-        logger.warning(f"Dask cluster dashboard_link: {self.client.cluster.dashboard_link}")

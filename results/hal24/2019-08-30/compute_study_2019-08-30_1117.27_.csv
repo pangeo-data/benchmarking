@@ -1,13 +1,13 @@
 chunk_per_worker,chunk_size,chunking_scheme,dataset_size,machine,maxcore_per_node,maxmemory_per_node,num_nodes,operation,runtime,spil,threads_per_worker,worker_per_node
-10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,global_mean,10.899767398834229,False,1,1
-10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,temporal_mean,10.28101134300232,False,1,1
+10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,temporal_mean,10.899767398834229,False,1,1
+10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,spatial_mean,10.28101134300232,False,1,1
 10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,climatology,14.610970258712769,False,1,1
 10,1024MB,spatial,40.96 GB,hal24,24,128gb,4,anomaly,47.15689706802368,False,1,1
-10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,global_mean,10.610904455184937,False,1,1
-10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,temporal_mean,9.628058195114136,False,1,1
+10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,temporal_mean,10.610904455184937,False,1,1
+10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,spatial_mean,9.628058195114136,False,1,1
 10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,climatology,14.559460639953613,False,1,1
 10,1024MB,temporal,40.96 GB,hal24,24,128gb,4,anomaly,25.016937494277954,False,1,1
-10,1024MB,auto,40.96 GB,hal24,24,128gb,4,global_mean,11.214877128601074,False,1,1
-10,1024MB,auto,40.96 GB,hal24,24,128gb,4,temporal_mean,10.053735971450806,False,1,1
+10,1024MB,auto,40.96 GB,hal24,24,128gb,4,temporal_mean,11.214877128601074,False,1,1
+10,1024MB,auto,40.96 GB,hal24,24,128gb,4,spatial_mean,10.053735971450806,False,1,1
 10,1024MB,auto,40.96 GB,hal24,24,128gb,4,climatology,15.522502183914185,False,1,1
 10,1024MB,auto,40.96 GB,hal24,24,128gb,4,anomaly,25.136229038238525,False,1,1
