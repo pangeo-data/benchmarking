@@ -19,6 +19,7 @@ parameters:
     - 24
     - 32
   chunk_size:
+    - 32MB
     - 64MB
     - 128MB
     - 256MB
