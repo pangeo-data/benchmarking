@@ -73,16 +73,25 @@ class AbstractSetup(ABC):
         walltime = self.params['walltime']
         maxmemory_per_node = self.params['maxmemory_per_node']
         maxcore_per_node = self.params['maxcore_per_node']
+        chunk_per_worker = self.params['chunk_per_worker']
         spil = self.params['spil']
         output_dir = self.params['output_dir']
         os.makedirs(output_dir, exist_ok=True)
         parameters = self.params['parameters']
         num_workers = parameters['number_of_workers_per_nodes']
+        num_threads = parameters['number_of_threads_per_workers']
         num_nodes = parameters['number_of_nodes']
         chunking_schemes = parameters['chunking_scheme']
         chsz = parameters['chunk_size']
-
+        # add variable for IO bench testing directories 
+        # create possibility as . In case nothing was specified?
+        # add here switch  true false from yaml?
+        # or add operation part ? : 
+        # IO bench 1–2, time to mesure how long it take to write zarr file(2. Netcdf)
+        # IO bench 3-4 time to read from zarr (4from netcdf) file then make each operations ( without persiste)
+        
         for wpn in num_workers:
+            tpw = 1
         #for wpn in range(1,maxcore_per_node,step_core):
             worker_per_node=wpn
             self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn,verbose=verbose)
@@ -104,9 +113,10 @@ class AbstractSetup(ABC):
                     for chunking_scheme in chunking_schemes:
                         if verbose:
                             print(
-                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}'
+                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}, chunk per worker={chunk_per_worker}'
                             )
                         ds = timeseries(
+                            chunk_per_worker=chunk_per_worker,
                             chunk_size=chunk_size,
                             chunking_scheme=chunking_scheme,
                             num_nodes=num,
@@ -121,8 +131,10 @@ class AbstractSetup(ABC):
                             with timer.time(
                                 operation=op.__name__,
                                 chunk_size=chunk_size,
+                                chunk_per_worker=chunk_per_worker,
                                 dataset_size=dataset_size,
                                 worker_per_node=wpn,
+                                threads_per_worker=tpw,
                                 num_nodes=num,
                                 chunking_scheme=chunking_scheme,
                                 machine=machine,
@@ -174,7 +186,7 @@ class PBSSetup(AbstractSetup):
             walltime=walltime,
             job_extra=["-j oe"],
             env_extra=["OMP_NUM_THREADS=1"],     # These two lines are to ensure that each benchmark workers only use one threads for benchmark.
-            extra=['--nthreads 1'],
+            extra=['--nthreads 1'],   # in the job script one sees twice --nthreads, but it get overwritten by --nthreads 1 
         )
        #     extra=['--memory-target-fraction 0.95', '--memory-pause-fraction 0.9']
         self.client = Client(cluster)
