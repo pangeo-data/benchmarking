@@ -1,6 +1,6 @@
 machine: wrangler
 job_scheduler: slurm
-queue: hadoop
+queue: normal
 walltime: 00:60:00
 maxmemory_per_node: 128gb
 maxcore_per_node: 24
@@ -11,13 +11,11 @@ parameters:
     - 1
   number_of_threads_per_workers: 1
   number_of_nodes:
-#     - 1
-#     - 2
-#     - 4
-#     - 8
-#     - 16
-    - 24
-    - 32
+    - 1
+    - 2
+    - 4
+    - 8
+    - 16
   chunk_size:
     - 32MB
     - 64MB
