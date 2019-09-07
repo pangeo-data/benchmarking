@@ -63,7 +63,7 @@ Options:
 
 ## Benchmark Results
 
-Benchmark results are persisted in the `results` directory by default. The exact location of the benchmark results depends on the machine name (specified in the config file) and the date on which the benchmarks were run. For instance, if the benchmarks were run on Cheyenne supercomputer on 2019-09-07, the results would be saved in: `results/cheyenne/2019-09-07/` directory. The file name follows this template: `compute_study_YYYY-MM-DD_HH-MM-SS_.csv`
+Benchmark results are persisted in the `results` directory by default. The exact location of the benchmark results depends on the machine name (specified in the config file) and the date on which the benchmarks were run. For instance, if the benchmarks were run on Cheyenne supercomputer on 2019-09-07, the results would be saved in: `results/cheyenne/2019-09-07/` directory. The file name follows this template: `compute_study_YYYY-MM-DD_HH-MM-SS.csv`
 
 ## Visualization
 
