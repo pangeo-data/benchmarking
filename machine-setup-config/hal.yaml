@@ -1,9 +1,8 @@
-machine: cheyenne
-queue: regular
+machine: hal24
+queue: batch
 walltime: 1:00:00
-maxmemory_per_node: 64gb
-maxcore_per_node: 36
-chunk_per_worker: 10
+maxmemory_per_node: 128gb
+maxcore_per_node: 24
 spil: false
 parameters:
   number_of_workers_per_nodes:
@@ -16,16 +15,12 @@ parameters:
     - 4
     - 8
     - 16
-    - 24
-    - 32
   chunk_size:
-    - 64MB
-    - 128MB
-    - 256MB
     - 512MB
+    - 1024MB
+    - 2048MB
+    - 4096MB
   chunking_scheme:
     - spatial
     - temporal
     - auto
-
-output_dir: ./results-cheyen
