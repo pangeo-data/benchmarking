@@ -90,7 +90,6 @@ class Runner:
             interface="ib0",
             queue=queue,
             walltime=walltime,
-            job_extra=["-j oe"],
             env_extra=["OMP_NUM_THREADS=1"],
             extra=["--nthreads 1"],
         )
