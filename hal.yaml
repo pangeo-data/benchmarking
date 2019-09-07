@@ -24,5 +24,3 @@ parameters:
     - spatial
     - temporal
     - auto
-
-output_dir: ./results-hal24-1thread

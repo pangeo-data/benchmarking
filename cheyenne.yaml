@@ -27,5 +27,3 @@ parameters:
     - spatial
     - temporal
     - auto
-
-output_dir: ./results-cheyen
