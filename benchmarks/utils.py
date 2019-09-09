@@ -1,19 +1,22 @@
 from contextlib import contextmanager
 from time import time, sleep
-import pandas as pd
-import yaml
 from .datasets import timeseries
-from .ops import global_mean, temporal_mean, climatology, anomaly
+from .ops import spatial_mean, temporal_mean, climatology, anomaly
 from distributed import wait
 from distributed.utils import format_bytes
 import datetime
-import warnings
-from abc import ABC, abstractmethod
 from distributed import Client
+import pandas as pd
 
-
-#warnings.simplefilter('ignore')  # Silence warnings
+import logging
 import os
+
+logger = logging.getLogger()
+logger.setLevel(level=logging.WARNING)
+
+
+here = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+results_dir = os.path.join(here, "results")
 
 
 class DiagnosticTimer:
@@ -25,10 +28,11 @@ class DiagnosticTimer:
         tic = time()
         yield
         toc = time()
-        kwargs['runtime'] = toc - tic
+        kwargs["runtime"] = toc - tic
         self.diagnostics.append(kwargs)
 
     def dataframe(self):
+
         return pd.DataFrame(self.diagnostics)
 
 
@@ -48,73 +52,108 @@ def cluster_wait(client, n_workers):
             break
 
 
-class AbstractSetup(ABC):
+class Runner:
     def __init__(self, input_file):
+        import yaml
+
         try:
             with open(input_file) as f:
                 self.params = yaml.safe_load(f)
         except Exception as exc:
             raise exc
-        self.computations = [global_mean, temporal_mean, climatology, anomaly]
+        self.computations = [spatial_mean, temporal_mean, climatology, anomaly]
         self.client = None
 
-    @abstractmethod
-    def create_cluster(self):
+    def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
         """ Creates a dask cluster using dask_jobqueue
         """
-        pass
+        logger.warning("Creating a dask cluster using dask_jobqueue")
+        logger.warning(f"Job Scheduler: {job_scheduler}")
+        logger.warning(f"Memory size for each node: {memory}")
+        logger.warning(f"Number of cores for each node: {maxcore}")
+        logger.warning(f"Number of workers for each node: {wpn}")
 
-    def run(self, verbose=False):
-        if verbose:
-            print ('read configuration yaml file here to run the benchmarks ')
-        machine = self.params['machine']
-        #machine_specifications = self.params['machine_specifications']
-        queue = self.params['queue']
-        walltime = self.params['walltime']
-        maxmemory_per_node = self.params['maxmemory_per_node']
-        maxcore_per_node = self.params['maxcore_per_node']
-        chunk_per_worker = self.params['chunk_per_worker']
-        spil = self.params['spil']
-        output_dir = self.params['output_dir']
+        from dask_jobqueue import PBSCluster, SLURMCluster
+
+        job_schedulers = {"pbs": PBSCluster, "slurm": SLURMCluster}
+
+        # Note about OMP_NUM_THREADS=1, --threads 1:
+        # These two lines are to ensure that each benchmark workers
+        # only use one threads for benchmark.
+        # in the job script one sees twice --nthreads,
+        # but it get overwritten by --nthreads 1
+        cluster = job_schedulers[job_scheduler](
+            cores=maxcore,
+            memory=memory,
+            processes=wpn,
+            local_directory="$TMPDIR",
+            interface="ib0",
+            queue=queue,
+            walltime=walltime,
+            env_extra=["OMP_NUM_THREADS=1"],
+            extra=["--nthreads 1"],
+        )
+
+        self.client = Client(cluster)
+
+        logger.warning(
+            "************************************\n"
+            "Job script created by dask_jobqueue:\n"
+            f"{cluster.job_script()}\n"
+            "***************************************"
+        )
+        logger.warning(f"Dask cluster dashboard_link: {self.client.cluster.dashboard_link}")
+
+    def run(self):
+        logger.warning("Reading configuration YAML config file")
+        machine = self.params["machine"]
+        job_scheduler = self.params["job_scheduler"]
+        queue = self.params["queue"]
+        walltime = self.params["walltime"]
+        maxmemory_per_node = self.params["maxmemory_per_node"]
+        maxcore_per_node = self.params["maxcore_per_node"]
+        chunk_per_worker = self.params["chunk_per_worker"]
+        spil = self.params["spil"]
+        output_dir = self.params.get("output_dir", results_dir)
+        now = datetime.datetime.now()
+        output_dir = os.path.join(output_dir, f"{machine}/{str(now.date())}")
         os.makedirs(output_dir, exist_ok=True)
-        parameters = self.params['parameters']
-        num_workers = parameters['number_of_workers_per_nodes']
-        num_threads = parameters['number_of_threads_per_workers']
-        num_nodes = parameters['number_of_nodes']
-        chunking_schemes = parameters['chunking_scheme']
-        chsz = parameters['chunk_size']
-        # add variable for IO bench testing directories 
-        # create possibility as . In case nothing was specified?
-        # add here switch  true false from yaml?
-        # or add operation part ? : 
-        # IO bench 1–2, time to mesure how long it take to write zarr file(2. Netcdf)
-        # IO bench 3-4 time to read from zarr (4from netcdf) file then make each operations ( without persiste)
-        
+        parameters = self.params["parameters"]
+        num_workers = parameters["number_of_workers_per_nodes"]
+        num_threads = parameters.get("number_of_threads_per_workers", 1)
+        num_nodes = parameters["number_of_nodes"]
+        chunking_schemes = parameters["chunking_scheme"]
+        chsz = parameters["chunk_size"]
+
         for wpn in num_workers:
-            tpw = 1
-        #for wpn in range(1,maxcore_per_node,step_core):
-            worker_per_node=wpn
-            self.create_cluster(maxcore=maxcore_per_node,walltime=walltime,memory=maxmemory_per_node,queue=queue,wpn=wpn,verbose=verbose)
+            self.create_cluster(
+                job_scheduler=job_scheduler,
+                maxcore=maxcore_per_node,
+                walltime=walltime,
+                memory=maxmemory_per_node,
+                queue=queue,
+                wpn=wpn,
+            )
             for num in num_nodes:
-                #self.client.cluster.scale(num )
                 self.client.cluster.scale(num * wpn)
-                if verbose:
-                    print('start cluster_wait')
-                #cluster_wait(self.client, num )
                 cluster_wait(self.client, num * wpn)
                 timer = DiagnosticTimer()
                 dfs = []
-                if verbose:
-                    print( f'dask cluster client started  with {num} nodes')
-                    print( 'client cluster ')
-                    print(len(self.client.cluster.scheduler.workers))
+                logger.warning(
+                    "#####################################################################\n"
+                    f"Dask cluster:\n"
+                    f"\t{self.client.cluster}\n"
+                )
                 for chunk_size in chsz:
 
                     for chunking_scheme in chunking_schemes:
-                        if verbose:
-                            print(
-                                f'benchmark start with: worker_per_node={wpn}, num_nodes={num}, chunk_size={chunk_size}, chunking_scheme={chunking_scheme}, chunk per worker={chunk_per_worker}'
-                            )
+
+                        logger.warning(
+                            f"Benchmark starting with: \n\tworker_per_node = {wpn},"
+                            f"\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},"
+                            f"\n\tchunking_scheme = {chunking_scheme},"
+                            f"\n\tchunk per worker = {chunk_per_worker}"
+                        )
                         ds = timeseries(
                             chunk_per_worker=chunk_per_worker,
                             chunk_size=chunk_size,
@@ -124,9 +163,8 @@ class AbstractSetup(ABC):
                         ).persist()
                         wait(ds)
                         dataset_size = format_bytes(ds.nbytes)
-                        if verbose:
-                            print(ds)
-                            print('\n datasize: %.1f GB' %(ds.nbytes / 1e9))
+                        logger.warning(ds)
+                        logger.warning(f"Dataset total size: {dataset_size}")
                         for op in self.computations:
                             with timer.time(
                                 operation=op.__name__,
@@ -134,7 +172,7 @@ class AbstractSetup(ABC):
                                 chunk_per_worker=chunk_per_worker,
                                 dataset_size=dataset_size,
                                 worker_per_node=wpn,
-                                threads_per_worker=tpw,
+                                threads_per_worker=num_threads,
                                 num_nodes=num,
                                 chunking_scheme=chunking_scheme,
                                 machine=machine,
@@ -143,57 +181,23 @@ class AbstractSetup(ABC):
                                 spil=spil,
                             ):
                                 wait(op(ds).persist())
-                        if verbose:
-                            print('kills ds and every other dependent computation')
-                            #print('restarting all worker process before starting series of bench')
-                        #self.client.restart()  # hard restart of all worker processes.
-                        self.client.cancel(ds)  # kills ds, and every other dependent computation
+                        # kills ds, and every other dependent computation
+                        self.client.cancel(ds)
                     temp_df = timer.dataframe()
                     dfs.append(temp_df)
 
-                filename = f"{output_dir}/compute_study_{datetime.datetime.now().strftime('%Y-%m-%d_%H%M.%S')}_.csv"
-                if verbose:
-                    print('create bench mark result file: ',filename)
+                now = datetime.datetime.now()
+                filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
                 df = pd.concat(dfs)
                 df.to_csv(filename, index=False)
+                logger.warning(f"Persisted benchmark result file: {filename}")
 
-            print('client and cluster close before changing number of workers per nodes')
+            logger.warning(
+                "Shutting down the client and cluster before changing number of workers per nodes"
+            )
             self.client.cluster.close()
-            print('client cluster close finished')
+            logger.warning("Cluster shutdown finished")
             self.client.close()
-            print('client  close finished')
+            logger.warning("Client shutdown finished")
 
-
-class PBSSetup(AbstractSetup):
-    def create_cluster(self, maxcore, walltime, memory, queue,wpn,verbose):
-    #def create_cluster(self, worker_per_node):
-        if verbose:
-            print( """ Creates a dask cluster using dask_jobqueue """)
-            print( 'memory size for each node: ', memory)
-            print( 'number of cores for each node: ', maxcore)
-            print( 'number of workers for each node: ', wpn)
-            #print( 'to do here, write somewhere the distributed spil config, bandwidth etc ?')
-            
-
-        from dask_jobqueue import PBSCluster
-        cluster = PBSCluster(
-            cores=maxcore,
-            memory=memory,
-            processes=wpn,
-            local_directory='$TMPDIR',
-            interface='ib0',
-            queue=queue,
-            walltime=walltime,
-            job_extra=["-j oe"],
-            env_extra=["OMP_NUM_THREADS=1"],     # These two lines are to ensure that each benchmark workers only use one threads for benchmark.
-            extra=['--nthreads 1'],   # in the job script one sees twice --nthreads, but it get overwritten by --nthreads 1 
-        )
-       #     extra=['--memory-target-fraction 0.95', '--memory-pause-fraction 0.9']
-        self.client = Client(cluster)
-        if verbose:
-            print( 'job script created by dask_jobqueue: starts--------')
-            print(cluster.job_script())
-            print( 'job script created by dask_jobqueue: ends --------')
-            #print(cluster.job_file())
-            print( 'dask cluster dashboard_link : ' )
-            print(self.client.cluster.dashboard_link)
+        logger.warning("=====> The End <=========")

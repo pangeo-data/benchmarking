@@ -1,0 +1,13 @@
+chunk_size,chunking_scheme,dataset_size,machine,num_nodes,operation,runtime,worker_per_node
+512 MB,spatial,1.02 GB,cheyenne,2,temporal_mean,0.6165144443511963,1
+512 MB,spatial,1.02 GB,cheyenne,2,spatial_mean,0.5950899124145508,1
+512 MB,spatial,1.02 GB,cheyenne,2,climatology,0.8511862754821777,1
+512 MB,spatial,1.02 GB,cheyenne,2,anomaly,1.3094990253448486,1
+512 MB,temporal,1.02 GB,cheyenne,2,temporal_mean,0.6413991451263428,1
+512 MB,temporal,1.02 GB,cheyenne,2,spatial_mean,0.565626859664917,1
+512 MB,temporal,1.02 GB,cheyenne,2,climatology,0.8777322769165039,1
+512 MB,temporal,1.02 GB,cheyenne,2,anomaly,1.3739724159240723,1
+512 MB,auto,1.02 GB,cheyenne,2,temporal_mean,0.6156165599822998,1
+512 MB,auto,1.02 GB,cheyenne,2,spatial_mean,0.6045591831207275,1
+512 MB,auto,1.02 GB,cheyenne,2,climatology,0.9078075885772705,1
+512 MB,auto,1.02 GB,cheyenne,2,anomaly,1.4051904678344727,1
