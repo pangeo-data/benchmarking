@@ -1,0 +1,10 @@
+#!/bin/sh
+for idx in cheyenne hal24  ;do
+find $idx -type d |xargs -I dir mkdir 'clean-'dir
+for i in `ls -1 $idx/*/*.csv `;do
+ newfile='clean-'${i}
+ echo "=== ${i},$newfile"
+(head -n +1 ${i} && tail -n +2 ${i} | sort )  |uniq  > ${newfile} 
+#exit
+done
+done
