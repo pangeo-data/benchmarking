@@ -1,4 +1,4 @@
-machine: hal24
+machine: hal1D
 job_scheduler: pbs
 queue: batch
 walltime: 1:00:00
