@@ -1,0 +1,25 @@
+chunk_per_worker,chunk_size,chunking_scheme,dataset_size,machine,maxcore_per_node,maxmemory_per_node,num_nodes,operation,runtime,spil,threads_per_worker,worker_per_node
+10,1024MB,auto,20.48 GB,hal24,24,128gb,2,anomaly,32.40725874900818,False,1,1
+10,1024MB,auto,20.48 GB,hal24,24,128gb,2,climatology,18.139535665512085,False,1,1
+10,1024MB,auto,20.48 GB,hal24,24,128gb,2,spatial_mean,13.064059972763062,False,1,1
+10,1024MB,auto,20.48 GB,hal24,24,128gb,2,temporal_mean,14.142809391021729,False,1,1
+10,1024MB,spatial,20.48 GB,hal24,24,128gb,2,anomaly,46.08566236495972,False,1,1
+10,1024MB,spatial,20.48 GB,hal24,24,128gb,2,climatology,13.551032066345215,False,1,1
+10,1024MB,spatial,20.48 GB,hal24,24,128gb,2,spatial_mean,9.413447380065918,False,1,1
+10,1024MB,spatial,20.48 GB,hal24,24,128gb,2,temporal_mean,11.19959020614624,False,1,1
+10,1024MB,temporal,20.48 GB,hal24,24,128gb,2,anomaly,34.59145760536194,False,1,1
+10,1024MB,temporal,20.48 GB,hal24,24,128gb,2,climatology,17.490946531295776,False,1,1
+10,1024MB,temporal,20.48 GB,hal24,24,128gb,2,spatial_mean,12.635899543762207,False,1,1
+10,1024MB,temporal,20.48 GB,hal24,24,128gb,2,temporal_mean,14.09779691696167,False,1,1
+10,2048MB,auto,40.96 GB,hal24,24,128gb,2,anomaly,69.13890767097473,False,1,1
+10,2048MB,auto,40.96 GB,hal24,24,128gb,2,climatology,44.165072441101074,False,1,1
+10,2048MB,auto,40.96 GB,hal24,24,128gb,2,spatial_mean,29.007505655288696,False,1,1
+10,2048MB,auto,40.96 GB,hal24,24,128gb,2,temporal_mean,30.041762828826904,False,1,1
+10,2048MB,spatial,40.96 GB,hal24,24,128gb,2,anomaly,115.45309090614319,False,1,1
+10,2048MB,spatial,40.96 GB,hal24,24,128gb,2,climatology,35.421666383743286,False,1,1
+10,2048MB,spatial,40.96 GB,hal24,24,128gb,2,spatial_mean,26.680108547210693,False,1,1
+10,2048MB,spatial,40.96 GB,hal24,24,128gb,2,temporal_mean,28.63027596473694,False,1,1
+10,2048MB,temporal,40.96 GB,hal24,24,128gb,2,anomaly,82.01330327987671,False,1,1
+10,2048MB,temporal,40.96 GB,hal24,24,128gb,2,climatology,42.08133292198181,False,1,1
+10,2048MB,temporal,40.96 GB,hal24,24,128gb,2,spatial_mean,27.70791482925415,False,1,1
+10,2048MB,temporal,40.96 GB,hal24,24,128gb,2,temporal_mean,31.115057945251465,False,1,1

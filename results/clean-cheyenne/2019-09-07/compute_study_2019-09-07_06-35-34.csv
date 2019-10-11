@@ -1,0 +1,25 @@
+operation,chunk_size,chunk_per_worker,dataset_size,worker_per_node,threads_per_worker,num_nodes,chunking_scheme,machine,maxmemory_per_node,maxcore_per_node,spil,runtime
+anomaly,32MB,10,1.28 GB,1,1,4,auto,cheyenne,109gb,36,False,0.7784903049468994
+anomaly,32MB,10,1.28 GB,1,1,4,spatial,cheyenne,109gb,36,False,0.7454414367675781
+anomaly,32MB,10,1.28 GB,1,1,4,temporal,cheyenne,109gb,36,False,0.7127280235290527
+anomaly,512MB,10,20.48 GB,1,1,4,auto,cheyenne,109gb,36,False,17.487191438674927
+anomaly,512MB,10,20.48 GB,1,1,4,spatial,cheyenne,109gb,36,False,18.15202569961548
+anomaly,512MB,10,20.48 GB,1,1,4,temporal,cheyenne,109gb,36,False,17.844773054122925
+climatology,32MB,10,1.28 GB,1,1,4,auto,cheyenne,109gb,36,False,0.42113256454467773
+climatology,32MB,10,1.28 GB,1,1,4,spatial,cheyenne,109gb,36,False,0.5257704257965088
+climatology,32MB,10,1.28 GB,1,1,4,temporal,cheyenne,109gb,36,False,0.4683070182800293
+climatology,512MB,10,20.48 GB,1,1,4,auto,cheyenne,109gb,36,False,8.892852544784546
+climatology,512MB,10,20.48 GB,1,1,4,spatial,cheyenne,109gb,36,False,8.745238780975342
+climatology,512MB,10,20.48 GB,1,1,4,temporal,cheyenne,109gb,36,False,8.930718898773193
+spatial_mean,32MB,10,1.28 GB,1,1,4,auto,cheyenne,109gb,36,False,0.44879674911499023
+spatial_mean,32MB,10,1.28 GB,1,1,4,spatial,cheyenne,109gb,36,False,0.7929482460021973
+spatial_mean,32MB,10,1.28 GB,1,1,4,temporal,cheyenne,109gb,36,False,0.4167354106903076
+spatial_mean,512MB,10,20.48 GB,1,1,4,auto,cheyenne,109gb,36,False,8.243985176086426
+spatial_mean,512MB,10,20.48 GB,1,1,4,spatial,cheyenne,109gb,36,False,8.80004096031189
+spatial_mean,512MB,10,20.48 GB,1,1,4,temporal,cheyenne,109gb,36,False,8.226307392120361
+temporal_mean,32MB,10,1.28 GB,1,1,4,auto,cheyenne,109gb,36,False,0.26879286766052246
+temporal_mean,32MB,10,1.28 GB,1,1,4,spatial,cheyenne,109gb,36,False,0.28607845306396484
+temporal_mean,32MB,10,1.28 GB,1,1,4,temporal,cheyenne,109gb,36,False,0.27423787117004395
+temporal_mean,512MB,10,20.48 GB,1,1,4,auto,cheyenne,109gb,36,False,5.902307987213135
+temporal_mean,512MB,10,20.48 GB,1,1,4,spatial,cheyenne,109gb,36,False,5.859688758850098
+temporal_mean,512MB,10,20.48 GB,1,1,4,temporal,cheyenne,109gb,36,False,5.884172201156616
