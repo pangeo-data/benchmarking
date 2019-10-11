@@ -12,9 +12,16 @@ parameters:
     - 1
   number_of_threads_per_workers: 1
   number_of_nodes:
+    - 1
     - 2
+    - 4
+    - 8
+    - 16
   chunk_size:
-    - 1024MB
+    - 64MB
+    - 128MB
+    - 256MB
+    - 512MB
   chunking_scheme:
     - spatial
     - temporal
