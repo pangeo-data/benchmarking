@@ -6,6 +6,7 @@ maxmemory_per_node: 128gb
 maxcore_per_node: 24
 chunk_per_worker: 10
 spil: false
+freq: 1D
 parameters:
   number_of_workers_per_nodes:
     - 1

@@ -113,6 +113,7 @@ class Runner:
         maxmemory_per_node = self.params["maxmemory_per_node"]
         maxcore_per_node = self.params["maxcore_per_node"]
         chunk_per_worker = self.params["chunk_per_worker"]
+        freq = self.params["freq"]
         spil = self.params["spil"]
         output_dir = self.params.get("output_dir", results_dir)
         now = datetime.datetime.now()
@@ -159,6 +160,7 @@ class Runner:
                             chunk_size=chunk_size,
                             chunking_scheme=chunking_scheme,
                             num_nodes=num,
+                            freq=freq,
                             worker_per_node=wpn,
                         ).persist()
                         wait(ds)
