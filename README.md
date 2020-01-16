@@ -69,6 +69,20 @@ Options:
 
 To run the benchmarks from jupyter notebook, install 'pangeo-bench' kernel to your jupyter notebook enviroment, then start run.ipynb notebook.  You will need to specify the configuration file as described above in your notebook.  
 
+To install your 'pangeo-bench' kernel to your jupyter notebook enviroment you'll need to connect a terminal of your HPC enviroment and run following command.
+
+```conda env create -f pangeo-bench.yml
+source activate pangeo-bench
+ipython kernel install --user --name pangeo-bench
+```
+
+Before starting your jupyternotebook, you can verify that if your kernel is well installed or not by follwing command
+
+```
+jupyter kernelspec list
+```
+
+
 
 ## Benchmark Results
 
