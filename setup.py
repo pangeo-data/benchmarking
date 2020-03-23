@@ -11,7 +11,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     use_scm_version={
-        "version_scheme": "guess-next-dev",
+        "version_scheme": "post-release",
         "local_scheme": "dirty-tag",
         "write_to": "benchmarks/version.py",
     },
