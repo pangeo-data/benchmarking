@@ -10,11 +10,8 @@ setuptools.setup(
     description="Pangeo zarr benchmarking package",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    use_scm_version={
-        "version_scheme": "post-release",
-        "local_scheme": "dirty-tag",
-        "write_to": "benchmarks/version.py",
-    },
+    use_scm_version={"version_scheme": "post-release", "local_scheme": "dirty-tag"},
+    install_requires=["dask>=2.11", "xarray>=0.14", "numpy>1.17"],
     url="https://github.com/pangeo-data/benchmarking",
     packages=setuptools.find_packages(),
     classifiers=[
