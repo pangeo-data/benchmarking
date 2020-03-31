@@ -2,7 +2,8 @@ import setuptools
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
-setuptools.setup(
+
+setup(
     name="pangeobench",
     scripts=["pangeobench"],
     author="Haiying Xu",
