@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-from benchmarks.utils import Runner
 import click
+
+from benchmarks.utils import Runner
 
 
 @click.command()
-@click.argument("config_file", type=click.Path(exists=True))
+@click.argument('config_file', type=click.Path(exists=True))
 def cli(config_file):
     runner = Runner(config_file)
     runner.run()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     cli()
