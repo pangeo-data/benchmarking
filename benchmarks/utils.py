@@ -1,22 +1,22 @@
-from contextlib import contextmanager
-from time import time, sleep
-from .datasets import timeseries
-from .ops import spatial_mean, temporal_mean, climatology, anomaly
-from distributed import wait
-from distributed.utils import format_bytes
 import datetime
-from distributed import Client
-import pandas as pd
-
 import logging
 import os
+from contextlib import contextmanager
+from time import sleep, time
+
+import pandas as pd
+from distributed import Client, wait
+from distributed.utils import format_bytes
+
+from .datasets import timeseries
+from .ops import anomaly, climatology, spatial_mean, temporal_mean
 
 logger = logging.getLogger()
 logger.setLevel(level=logging.WARNING)
 
 
 here = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-results_dir = os.path.join(here, "results")
+results_dir = os.path.join(here, 'results')
 
 
 class DiagnosticTimer:
@@ -28,7 +28,7 @@ class DiagnosticTimer:
         tic = time()
         yield
         toc = time()
-        kwargs["runtime"] = toc - tic
+        kwargs['runtime'] = toc - tic
         self.diagnostics.append(kwargs)
 
     def dataframe(self):
@@ -67,15 +67,15 @@ class Runner:
     def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
         """ Creates a dask cluster using dask_jobqueue
         """
-        logger.warning("Creating a dask cluster using dask_jobqueue")
-        logger.warning(f"Job Scheduler: {job_scheduler}")
-        logger.warning(f"Memory size for each node: {memory}")
-        logger.warning(f"Number of cores for each node: {maxcore}")
-        logger.warning(f"Number of workers for each node: {wpn}")
+        logger.warning('Creating a dask cluster using dask_jobqueue')
+        logger.warning(f'Job Scheduler: {job_scheduler}')
+        logger.warning(f'Memory size for each node: {memory}')
+        logger.warning(f'Number of cores for each node: {maxcore}')
+        logger.warning(f'Number of workers for each node: {wpn}')
 
         from dask_jobqueue import PBSCluster, SLURMCluster
 
-        job_schedulers = {"pbs": PBSCluster, "slurm": SLURMCluster}
+        job_schedulers = {'pbs': PBSCluster, 'slurm': SLURMCluster}
 
         # Note about OMP_NUM_THREADS=1, --threads 1:
         # These two lines are to ensure that each benchmark workers
@@ -86,45 +86,45 @@ class Runner:
             cores=maxcore,
             memory=memory,
             processes=wpn,
-            local_directory="$TMPDIR",
-            interface="ib0",
+            local_directory='$TMPDIR',
+            interface='ib0',
             queue=queue,
             walltime=walltime,
-            env_extra=["OMP_NUM_THREADS=1"],
-            extra=["--nthreads 1"],
+            env_extra=['OMP_NUM_THREADS=1'],
+            extra=['--nthreads 1'],
         )
 
         self.client = Client(cluster)
 
         logger.warning(
-            "************************************\n"
-            "Job script created by dask_jobqueue:\n"
-            f"{cluster.job_script()}\n"
-            "***************************************"
+            '************************************\n'
+            'Job script created by dask_jobqueue:\n'
+            f'{cluster.job_script()}\n'
+            '***************************************'
         )
-        logger.warning(f"Dask cluster dashboard_link: {self.client.cluster.dashboard_link}")
+        logger.warning(f'Dask cluster dashboard_link: {self.client.cluster.dashboard_link}')
 
     def run(self):
-        logger.warning("Reading configuration YAML config file")
-        machine = self.params["machine"]
-        job_scheduler = self.params["job_scheduler"]
-        queue = self.params["queue"]
-        walltime = self.params["walltime"]
-        maxmemory_per_node = self.params["maxmemory_per_node"]
-        maxcore_per_node = self.params["maxcore_per_node"]
-        chunk_per_worker = self.params["chunk_per_worker"]
-        freq = self.params["freq"]
-        spil = self.params["spil"]
-        output_dir = self.params.get("output_dir", results_dir)
+        logger.warning('Reading configuration YAML config file')
+        machine = self.params['machine']
+        job_scheduler = self.params['job_scheduler']
+        queue = self.params['queue']
+        walltime = self.params['walltime']
+        maxmemory_per_node = self.params['maxmemory_per_node']
+        maxcore_per_node = self.params['maxcore_per_node']
+        chunk_per_worker = self.params['chunk_per_worker']
+        freq = self.params['freq']
+        spil = self.params['spil']
+        output_dir = self.params.get('output_dir', results_dir)
         now = datetime.datetime.now()
-        output_dir = os.path.join(output_dir, f"{machine}/{str(now.date())}")
+        output_dir = os.path.join(output_dir, f'{machine}/{str(now.date())}')
         os.makedirs(output_dir, exist_ok=True)
-        parameters = self.params["parameters"]
-        num_workers = parameters["number_of_workers_per_nodes"]
-        num_threads = parameters.get("number_of_threads_per_workers", 1)
-        num_nodes = parameters["number_of_nodes"]
-        chunking_schemes = parameters["chunking_scheme"]
-        chsz = parameters["chunk_size"]
+        parameters = self.params['parameters']
+        num_workers = parameters['number_of_workers_per_nodes']
+        num_threads = parameters.get('number_of_threads_per_workers', 1)
+        num_nodes = parameters['number_of_nodes']
+        chunking_schemes = parameters['chunking_scheme']
+        chsz = parameters['chunk_size']
 
         for wpn in num_workers:
             self.create_cluster(
@@ -141,19 +141,19 @@ class Runner:
                 timer = DiagnosticTimer()
                 dfs = []
                 logger.warning(
-                    "#####################################################################\n"
-                    f"Dask cluster:\n"
-                    f"\t{self.client.cluster}\n"
+                    '#####################################################################\n'
+                    f'Dask cluster:\n'
+                    f'\t{self.client.cluster}\n'
                 )
                 for chunk_size in chsz:
 
                     for chunking_scheme in chunking_schemes:
 
                         logger.warning(
-                            f"Benchmark starting with: \n\tworker_per_node = {wpn},"
-                            f"\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},"
-                            f"\n\tchunking_scheme = {chunking_scheme},"
-                            f"\n\tchunk per worker = {chunk_per_worker}"
+                            f'Benchmark starting with: \n\tworker_per_node = {wpn},'
+                            f'\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},'
+                            f'\n\tchunking_scheme = {chunking_scheme},'
+                            f'\n\tchunk per worker = {chunk_per_worker}'
                         )
                         ds = timeseries(
                             chunk_per_worker=chunk_per_worker,
@@ -166,7 +166,7 @@ class Runner:
                         wait(ds)
                         dataset_size = format_bytes(ds.nbytes)
                         logger.warning(ds)
-                        logger.warning(f"Dataset total size: {dataset_size}")
+                        logger.warning(f'Dataset total size: {dataset_size}')
                         for op in self.computations:
                             with timer.time(
                                 operation=op.__name__,
@@ -192,14 +192,14 @@ class Runner:
                 filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
                 df = pd.concat(dfs)
                 df.to_csv(filename, index=False)
-                logger.warning(f"Persisted benchmark result file: {filename}")
+                logger.warning(f'Persisted benchmark result file: {filename}')
 
             logger.warning(
-                "Shutting down the client and cluster before changing number of workers per nodes"
+                'Shutting down the client and cluster before changing number of workers per nodes'
             )
             self.client.cluster.close()
-            logger.warning("Cluster shutdown finished")
+            logger.warning('Cluster shutdown finished')
             self.client.close()
-            logger.warning("Client shutdown finished")
+            logger.warning('Client shutdown finished')
 
-        logger.warning("=====> The End <=========")
+        logger.warning('=====> The End <=========')
