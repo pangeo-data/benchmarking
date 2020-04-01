@@ -1,21 +1,17 @@
-# This is a basic workflow to help you get started with Actions
-
 name: code-style
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: "*"
   pull_request:
-    branches: [ master ]
+    branches: master
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+
+
 jobs:
-  # This workflow contains a single job called "build"
+
   lint-black:
     name: black-formatter
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,3 +26,37 @@ jobs:
       - name: Black Code Formatter
         run: |
           black --check --line-length 100 --skip-string-normalization .
+
+  lint-flake8:
+    name: flake8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6
+      - name: Install Flake8
+        run: |
+          python -m pip install flake8
+      - name: Flake8 check
+        run: |
+          flake8 .
+
+  lint-isort:
+    name: isort
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6
+      - name: Install isort
+        run: |
+          python -m pip install isort
+      - name: isort check
+        run: |
+          isort --recursive --check-only .
