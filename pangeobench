@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""The pangeobench script."""
+
 import click
 
 from benchmarks.utils import Runner
