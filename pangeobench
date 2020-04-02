@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import click
 
 from benchmarks.utils import Runner
