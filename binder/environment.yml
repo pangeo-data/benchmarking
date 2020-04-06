@@ -2,6 +2,7 @@ name: pangeo-bench
 channels:
   - conda-forge
 dependencies:
+  - click
   - dask-jobqueue
   - dask-labextension
   - dask>=2.3
