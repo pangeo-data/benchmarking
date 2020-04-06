@@ -17,7 +17,7 @@ setup(
     url='https://github.com/pangeo-data/benchmarking',
     packages=find_packages(),
     classifiers=[
-        'Development Status :: 0 - Beta',
+        'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
