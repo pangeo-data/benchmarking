@@ -2,7 +2,7 @@
 
 """The pangeobench script."""
 
-import click  # isort:skip
+import click
 
 from benchmarks.utils import Runner
 
