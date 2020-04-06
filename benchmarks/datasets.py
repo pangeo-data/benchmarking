@@ -1,22 +1,23 @@
-import numpy as np
+import math
+
+import dask
 import dask.array as da
+import numpy as np
+import pandas as pd
 import xarray as xr
 from distributed.utils import parse_bytes
-import math
-import pandas as pd
-import dask
 
 
 def timeseries(
     chunk_per_worker=10,
-    chunk_size="128 MB",
+    chunk_size='128 MB',
     num_nodes=1,
     worker_per_node=1,
     chunking_scheme=None,
     lat=320,
     lon=384,
-    start="1980-01-01",
-    freq="1H",
+    start='1980-01-01',
+    freq='1H',
     nan=False,
 ):
     """ Create synthetic Xarray dataset filled with random
@@ -74,7 +75,7 @@ def timeseries(
         history:  created for compute benchmarking
     """
 
-    dt = np.dtype("f8")
+    dt = np.dtype('f8')
     itemsize = dt.itemsize
     chunk_size = parse_bytes(chunk_size)
     total_bytes = chunk_size * num_nodes * worker_per_node * chunk_per_worker
@@ -82,32 +83,32 @@ def timeseries(
     size = total_bytes / itemsize
     timesteps = math.ceil(size / (lat * lon))
     shape = (timesteps, lon, lat)
-    if chunking_scheme == "temporal":
+    if chunking_scheme == 'temporal':
         x = math.ceil(chunk_size / (lon * lat * itemsize))
         chunks = (x, lon, lat)
-    elif chunking_scheme == "spatial":
+    elif chunking_scheme == 'spatial':
         x = math.ceil(math.sqrt(chunk_size / (timesteps * itemsize)))
         chunks = (timesteps, x, x)
     else:
-        chunks = "auto"
+        chunks = 'auto'
 
-    lats = xr.DataArray(np.linspace(start=-90, stop=90, num=lat), dims=["lat"])
-    lons = xr.DataArray(np.linspace(start=-180, stop=180, num=lon), dims=["lon"])
-    times = xr.DataArray(pd.date_range(start=start, freq=freq, periods=timesteps), dims=["time"])
-    if chunks == "auto":
-        with dask.config.set({"array.chunk-size": chunk_size}):
+    lats = xr.DataArray(np.linspace(start=-90, stop=90, num=lat), dims=['lat'])
+    lons = xr.DataArray(np.linspace(start=-180, stop=180, num=lon), dims=['lon'])
+    times = xr.DataArray(pd.date_range(start=start, freq=freq, periods=timesteps), dims=['time'])
+    if chunks == 'auto':
+        with dask.config.set({'array.chunk-size': chunk_size}):
             random_data = randn(shape=shape, chunks=chunks, nan=nan)
     else:
         random_data = randn(shape=shape, chunks=chunks, nan=nan)
     ds = xr.DataArray(
         random_data,
-        dims=["time", "lon", "lat"],
-        coords={"time": times, "lon": lons, "lat": lats},
-        name="sst",
+        dims=['time', 'lon', 'lat'],
+        coords={'time': times, 'lon': lons, 'lat': lats},
+        name='sst',
         encoding=None,
-        attrs={"units": "baz units", "description": "a description"},
+        attrs={'units': 'baz units', 'description': 'a description'},
     ).to_dataset()
-    ds.attrs = {"history": "created for compute benchmarking"}
+    ds.attrs = {'history': 'created for compute benchmarking'}
 
     return ds
 
