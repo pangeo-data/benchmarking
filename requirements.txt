@@ -1,0 +1,4 @@
+xarray>=0.15.1
+click
+dask
+distributed
