@@ -200,7 +200,7 @@ class Runner:
                             ):
                                 wait(op(ds).compute())
                         # kills ds, and every other dependent computation
-                        logger.warning(f'Computation done')
+                        logger.warning('Computation done')
                         self.client.cancel(ds)
                         # ret = deletefile(fs, io_format, root=f'{bucket}/test1')
                         print(fs.ls(path=f'{bucket}/test1'))
