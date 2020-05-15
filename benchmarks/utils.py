@@ -4,11 +4,11 @@ import os
 from contextlib import contextmanager
 from time import sleep, time
 
+import fsspec
 import pandas as pd
 from distributed import Client, wait
-from distributed.utils import format_bytes
 
-from .datasets import timeseries
+from .datasets import openfile, timeseries
 from .ops import anomaly, climatology, spatial_mean, temporal_mean
 
 logger = logging.getLogger()
@@ -109,6 +109,7 @@ class Runner:
         machine = self.params['machine']
         job_scheduler = self.params['job_scheduler']
         queue = self.params['queue']
+        print(queue)
         walltime = self.params['walltime']
         maxmemory_per_node = self.params['maxmemory_per_node']
         maxcore_per_node = self.params['maxcore_per_node']
@@ -124,7 +125,14 @@ class Runner:
         num_threads = parameters.get('number_of_threads_per_workers', 1)
         num_nodes = parameters['number_of_nodes']
         chunking_schemes = parameters['chunking_scheme']
+        io_format = parameters['io_format']
         chsz = parameters['chunk_size']
+        profile = parameters['profile']
+        bucket = parameters['bucket']
+        endpoint_url = parameters['endpoint_url']
+        fs = fsspec.filesystem(
+            's3', profile=profile, anon=False, client_kwargs={'endpoint_url': endpoint_url}
+        )
 
         for wpn in num_workers:
             self.create_cluster(
@@ -154,19 +162,24 @@ class Runner:
                             f'\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},'
                             f'\n\tchunking_scheme = {chunking_scheme},'
                             f'\n\tchunk per worker = {chunk_per_worker}'
+                            f'\n\tio_format = {io_format}'
                         )
-                        ds = timeseries(
+                        ds, dataset_size = timeseries(
                             chunk_per_worker=chunk_per_worker,
                             chunk_size=chunk_size,
                             chunking_scheme=chunking_scheme,
+                            io_format=io_format,
                             num_nodes=num,
                             freq=freq,
                             worker_per_node=wpn,
-                        ).persist()
+                            fs=fs,
+                            root=f'{bucket}/test1',
+                        )
+                        ds.compute()
                         wait(ds)
-                        dataset_size = format_bytes(ds.nbytes)
                         logger.warning(ds)
                         logger.warning(f'Dataset total size: {dataset_size}')
+                        ds = openfile(fs, io_format, root=f'{bucket}/test1')
                         for op in self.computations:
                             with timer.time(
                                 operation=op.__name__,
@@ -177,14 +190,20 @@ class Runner:
                                 threads_per_worker=num_threads,
                                 num_nodes=num,
                                 chunking_scheme=chunking_scheme,
+                                io_format=io_format,
+                                fs=fs,
+                                root=f'{bucket}/test1',
                                 machine=machine,
                                 maxmemory_per_node=maxmemory_per_node,
                                 maxcore_per_node=maxcore_per_node,
                                 spil=spil,
                             ):
-                                wait(op(ds).persist())
+                                wait(op(ds).compute())
                         # kills ds, and every other dependent computation
+                        logger.warning(f'Computation done')
                         self.client.cancel(ds)
+                        # ret = deletefile(fs, io_format, root=f'{bucket}/test1')
+                        print(fs.ls(path=f'{bucket}/test1'))
                     temp_df = timer.dataframe()
                     dfs.append(temp_df)
 

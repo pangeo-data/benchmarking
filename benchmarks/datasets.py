@@ -1,11 +1,14 @@
 import math
+import os
 
 import dask
 import dask.array as da
+import fsspec
 import numpy as np
 import pandas as pd
 import xarray as xr
-from distributed.utils import parse_bytes
+import zarr
+from distributed.utils import format_bytes, parse_bytes
 
 
 def timeseries(
@@ -14,11 +17,15 @@ def timeseries(
     num_nodes=1,
     worker_per_node=1,
     chunking_scheme=None,
+    io_format=None,
+    store_scheme=None,
     lat=320,
     lon=384,
     start='1980-01-01',
     freq='1H',
     nan=False,
+    fs=None,
+    root='.',
 ):
     """ Create synthetic Xarray dataset filled with random
     data.
@@ -105,12 +112,59 @@ def timeseries(
         dims=['time', 'lon', 'lat'],
         coords={'time': times, 'lon': lons, 'lat': lats},
         name='sst',
-        encoding=None,
-        attrs={'units': 'baz units', 'description': 'a description'},
+        # encoding=None,
+        attrs={
+            'units': 'baz units',
+            'description': 'a description',
+            'history': 'created for compute benchmarking',
+        },
     ).to_dataset()
-    ds.attrs = {'history': 'created for compute benchmarking'}
+    dataset_size = format_bytes(ds.nbytes)
+    if isinstance(fs, fsspec.AbstractFileSystem):
+        print(io_format)
+        if io_format == 'zarr':
+            store = fs.get_mapper(root=f'{root}/sst.zarr', check=False, create=True)
+            ds = ds.to_zarr(store, consolidated=True, compute=False, mode='w')
+        elif io_format == 'netcdf':
+            store = fs.open(path=f'{root}/sst.nc', mode='w')
+            ds = ds.to_netcdf(store, engine='h5netcdf', compute=False)
+    else:
+        if io_format == 'zarr':
+            store = f'{root}/sst.zarr'
+            ds = ds.to_zarr(store=store, consolidated=True, compute=False, mode='w')
+        elif io_format == 'netcdf':
+            store = f'{root}/sst.nc'
+            ds = ds.to_netcdf(store=store, engine='h5netcdf', compute=False, mode='w')
 
+    return ds, dataset_size
+
+
+def openfile(fs, io_format, root):
+    if isinstance(fs, fsspec.AbstractFileSystem):
+        if io_format == 'zarr':
+            ds = xr.open_zarr(fs.get_mapper(f'{root}/sst.zarr'), consolidated=True)
+        elif io_format == 'netcdf':
+            ds = xr.open_dataset(path=f'{root}/sst.nc', engine='h5netcdf')
+    else:
+        if io_format == 'zarr':
+            ds = xr.open_zarr(path=f'{root}/sst.zarr', consolidated=True)
+        elif io_format == 'netcdf':
+            ds = xr.open_dataset(path=f'{root}/sst.nc', engine='h5netcdf')
     return ds
+
+
+def deletefile(fs, io_format, root):
+    if isinstance(fs, fsspec.AbstractFileSystem):
+        if io_format == 'zarr':
+            ret = fs.rm(path=f'{root}/sst.zarr', recursive=True)
+        elif io_format == 'netcdf':
+            ret = fs.rm(path=f'{root}/sst.nc')
+    else:
+        if io_format == 'zarr':
+            ret = zarr.rmdir('sst.zarr')
+        elif io_format == 'netcdf':
+            ret = os.remove('sst.nc')
+    return ret
 
 
 def randn(shape, chunks=None, nan=False, seed=0):
