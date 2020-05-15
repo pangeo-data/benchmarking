@@ -112,7 +112,7 @@ def timeseries(
         dims=['time', 'lon', 'lat'],
         coords={'time': times, 'lon': lons, 'lat': lats},
         name='sst',
-        encoding=None,
+        # encoding=None,
         attrs={
             'units': 'baz units',
             'description': 'a description',
