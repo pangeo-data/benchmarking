@@ -112,7 +112,7 @@ def timeseries(
         dims=['time', 'lon', 'lat'],
         coords={'time': times, 'lon': lons, 'lat': lats},
         name='sst',
-        # encoding=None,
+        encoding=None,
         attrs={
             'units': 'baz units',
             'description': 'a description',
@@ -150,6 +150,7 @@ def openfile(fs, io_format, root):
             ds = xr.open_zarr(path=f'{root}/sst.zarr', consolidated=True)
         elif io_format == 'netcdf':
             ds = xr.open_dataset(path=f'{root}/sst.nc', engine='h5netcdf')
+
     return ds
 
 
