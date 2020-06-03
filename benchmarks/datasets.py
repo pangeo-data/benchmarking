@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import zarr
-from distributed.utils import format_bytes, parse_bytes
+from distributed.utils import parse_bytes
 
 
 def timeseries(
@@ -17,15 +17,15 @@ def timeseries(
     num_nodes=1,
     worker_per_node=1,
     chunking_scheme=None,
-    io_format=None,
+    # io_format=None,
     store_scheme=None,
     lat=320,
     lon=384,
     start='1980-01-01',
     freq='1H',
     nan=False,
-    fs=None,
-    root='.',
+    # fs=None,
+    # root='.',
 ):
     """ Create synthetic Xarray dataset filled with random
     data.
@@ -119,6 +119,7 @@ def timeseries(
             'history': 'created for compute benchmarking',
         },
     ).to_dataset()
+    '''
     dataset_size = format_bytes(ds.nbytes)
     if isinstance(fs, fsspec.AbstractFileSystem):
         print(io_format)
@@ -126,25 +127,37 @@ def timeseries(
             store = fs.get_mapper(root=f'{root}/sst.zarr', check=False, create=True)
             ds = ds.to_zarr(store, consolidated=True, compute=False, mode='w')
         elif io_format == 'netcdf':
-            store = fs.open(path=f'{root}/sst.nc', mode='w')
-            ds = ds.to_netcdf(store, engine='h5netcdf', compute=False)
+            store = f'test1/sst.nc'
+            ds = ds.to_netcdf(store, engine='h5netcdf', compute=True, mode='w')
+            fs.upload(lpath=f'test1', rpath=f'{root}/',recursive=True)
+
+            #print(fs.ls(f'{root}'))
+            print(fs.ls(f'{root}/test1'))
+            print(fs.du(f'{root}/test1'))
+            #print(fs.du(f'{root}/test1/test1'))
+            fileObj = fs.open(path=f'{root}/sst.nc')
+            ds = xr.open_dataset(fileObj, engine='h5netcdf')
+
     else:
         if io_format == 'zarr':
-            store = f'{root}/sst.zarr'
+            store = f'sst.zarr'
             ds = ds.to_zarr(store=store, consolidated=True, compute=False, mode='w')
         elif io_format == 'netcdf':
-            store = f'{root}/sst.nc'
-            ds = ds.to_netcdf(store=store, engine='h5netcdf', compute=False, mode='w')
-
-    return ds, dataset_size
+            store = f'sst.nc'
+            ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
+    '''
+    return ds
 
 
 def openfile(fs, io_format, root):
     if isinstance(fs, fsspec.AbstractFileSystem):
         if io_format == 'zarr':
-            ds = xr.open_zarr(fs.get_mapper(f'{root}/sst.zarr'), consolidated=True)
+            # ds = xr.open_zarr(fs.get_mapper(f'{root}/sst.zarr'), consolidated=True)
+            ds = da.from_zarr(fs.get_mapper(f'{root}/sst.zarr/sst'))
         elif io_format == 'netcdf':
-            ds = xr.open_dataset(path=f'{root}/sst.nc', engine='h5netcdf')
+            fileObj = fs.open(path=f'{root}/test1/sst.nc', mode='r')
+            print(f'{root}/sst.nc')
+            ds = xr.open_dataset(fileObj, engine='h5netcdf')
     else:
         if io_format == 'zarr':
             ds = xr.open_zarr(path=f'{root}/sst.zarr', consolidated=True)

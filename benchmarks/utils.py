@@ -7,9 +7,19 @@ from time import sleep, time
 import fsspec
 import pandas as pd
 from distributed import Client, wait
+from distributed.utils import format_bytes
 
-from .datasets import openfile, timeseries
-from .ops import anomaly, climatology, spatial_mean, temporal_mean
+from .datasets import timeseries
+from .ops import (
+    anomaly,
+    climatology,
+    deletefile,
+    openfile,
+    readfile,
+    spatial_mean,
+    temporal_mean,
+    writefile,
+)
 
 logger = logging.getLogger()
 logger.setLevel(level=logging.WARNING)
@@ -24,11 +34,11 @@ class DiagnosticTimer:
         self.diagnostics = []
 
     @contextmanager
-    def time(self, **kwargs):
+    def time(self, time_name, **kwargs):
         tic = time()
         yield
         toc = time()
-        kwargs['runtime'] = toc - tic
+        kwargs[time_name] = toc - tic
         self.diagnostics.append(kwargs)
 
     def dataframe(self):
@@ -62,6 +72,7 @@ class Runner:
         except Exception as exc:
             raise exc
         self.computations = [spatial_mean, temporal_mean, climatology, anomaly]
+        self.operations = [writefile, openfile, readfile, deletefile]
         self.client = None
 
     def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
@@ -127,12 +138,17 @@ class Runner:
         chunking_schemes = parameters['chunking_scheme']
         io_format = parameters['io_format']
         chsz = parameters['chunk_size']
-        profile = parameters['profile']
-        bucket = parameters['bucket']
-        endpoint_url = parameters['endpoint_url']
-        fs = fsspec.filesystem(
-            's3', profile=profile, anon=False, client_kwargs={'endpoint_url': endpoint_url}
-        )
+        if parameters['profile']:
+            profile = parameters['profile']
+            bucket = parameters['bucket']
+            root = f'{bucket}/test1'
+            endpoint_url = parameters['endpoint_url']
+            fs = fsspec.filesystem(
+                's3', profile=profile, anon=False, client_kwargs={'endpoint_url': endpoint_url}
+            )
+        else:
+            fs = None
+            root = None
 
         for wpn in num_workers:
             self.create_cluster(
@@ -164,24 +180,29 @@ class Runner:
                             f'\n\tchunk per worker = {chunk_per_worker}'
                             f'\n\tio_format = {io_format}'
                         )
-                        ds, dataset_size = timeseries(
+                        # fs.invalidate_cache()
+                        ds = timeseries(
                             chunk_per_worker=chunk_per_worker,
                             chunk_size=chunk_size,
                             chunking_scheme=chunking_scheme,
-                            io_format=io_format,
                             num_nodes=num,
                             freq=freq,
                             worker_per_node=wpn,
-                            fs=fs,
-                            root=f'{bucket}/test1',
-                        )
-                        ds.compute()
+                        ).persist()
                         wait(ds)
+                        dataset_size = format_bytes(ds.nbytes)
                         logger.warning(ds)
                         logger.warning(f'Dataset total size: {dataset_size}')
-                        ds = openfile(fs, io_format, root=f'{bucket}/test1')
-                        for op in self.computations:
+                        # with timer.time('openfile',
+                        #        dataset_size=dataset_size,
+                        #        ):
+                        #    ds = openfile(fs, io_format, root=f'{bucket}/test1')
+                        # with timer.time('readtime'):
+                        #    read(ds);
+
+                        for op in self.operations:
                             with timer.time(
+                                'runtime',
                                 operation=op.__name__,
                                 chunk_size=chunk_size,
                                 chunk_per_worker=chunk_per_worker,
@@ -192,18 +213,24 @@ class Runner:
                                 chunking_scheme=chunking_scheme,
                                 io_format=io_format,
                                 fs=fs,
-                                root=f'{bucket}/test1',
+                                root=root,
                                 machine=machine,
                                 maxmemory_per_node=maxmemory_per_node,
                                 maxcore_per_node=maxcore_per_node,
                                 spil=spil,
                             ):
-                                wait(op(ds).compute())
+                                print(root)
+                                if op.__name__ == 'writefile':
+                                    op(ds, fs, io_format, root)
+                                elif op.__name__ == 'openfile' or op.__name__ == 'deletefile':
+                                    ds = op(fs, io_format, root)
+                                else:
+                                    op(ds)
                         # kills ds, and every other dependent computation
                         logger.warning('Computation done')
                         self.client.cancel(ds)
-                        # ret = deletefile(fs, io_format, root=f'{bucket}/test1')
-                        print(fs.ls(path=f'{bucket}/test1'))
+                        # with timer.time('deletefile'):
+                        #    ret = deletefile(fs, io_format, root=f'{bucket}/test1')
                     temp_df = timer.dataframe()
                     dfs.append(temp_df)
 
