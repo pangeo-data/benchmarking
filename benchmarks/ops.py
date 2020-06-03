@@ -74,7 +74,7 @@ def writefile(ds, fs, io_format, root):
             # store = f'test1/sst.nc'
             # ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
             # ds.compute()
-            fs.upload(lpath=f'test1', rpath=f'{root}/', recursive=True)
+            fs.upload(lpath='test1', rpath=f'{root}/', recursive=True)
 
             # print(fs.ls(f'{root}'))
             print(root)
@@ -87,10 +87,10 @@ def writefile(ds, fs, io_format, root):
     else:
         print(io_format)
         if io_format == 'zarr':
-            store = f'test1/sst.zarr'
+            store = 'test1/sst.zarr'
             ds = ds.to_zarr(store=store, consolidated=True, compute=False, mode='w')
         elif io_format == 'netcdf':
-            store = f'test1/sst.nc'
+            store = 'test1/sst.nc'
             ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
         ds.compute()
 
