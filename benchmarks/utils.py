@@ -120,7 +120,6 @@ class Runner:
         machine = self.params['machine']
         job_scheduler = self.params['job_scheduler']
         queue = self.params['queue']
-        print(queue)
         walltime = self.params['walltime']
         maxmemory_per_node = self.params['maxmemory_per_node']
         maxcore_per_node = self.params['maxcore_per_node']
@@ -136,20 +135,9 @@ class Runner:
         num_threads = parameters.get('number_of_threads_per_workers', 1)
         num_nodes = parameters['number_of_nodes']
         chunking_schemes = parameters['chunking_scheme']
-        io_format = parameters['io_format']
+        io_formats = parameters['io_format']
+        filesystems = parameters['filesystem']
         chsz = parameters['chunk_size']
-        if parameters['profile']:
-            profile = parameters['profile']
-            bucket = parameters['bucket']
-            root = f'{bucket}/test1'
-            endpoint_url = parameters['endpoint_url']
-            fs = fsspec.filesystem(
-                's3', profile=profile, anon=False, client_kwargs={'endpoint_url': endpoint_url}
-            )
-        else:
-            fs = None
-            root = None
-
         for wpn in num_workers:
             self.create_cluster(
                 job_scheduler=job_scheduler,
@@ -171,66 +159,81 @@ class Runner:
                 )
                 for chunk_size in chsz:
 
-                    for chunking_scheme in chunking_schemes:
+                    for io_format in io_formats:
 
-                        logger.warning(
-                            f'Benchmark starting with: \n\tworker_per_node = {wpn},'
-                            f'\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},'
-                            f'\n\tchunking_scheme = {chunking_scheme},'
-                            f'\n\tchunk per worker = {chunk_per_worker}'
-                            f'\n\tio_format = {io_format}'
-                        )
-                        # fs.invalidate_cache()
-                        ds = timeseries(
-                            chunk_per_worker=chunk_per_worker,
-                            chunk_size=chunk_size,
-                            chunking_scheme=chunking_scheme,
-                            num_nodes=num,
-                            freq=freq,
-                            worker_per_node=wpn,
-                        ).persist()
-                        wait(ds)
-                        dataset_size = format_bytes(ds.nbytes)
-                        logger.warning(ds)
-                        logger.warning(f'Dataset total size: {dataset_size}')
-                        # with timer.time('openfile',
-                        #        dataset_size=dataset_size,
-                        #        ):
-                        #    ds = openfile(fs, io_format, root=f'{bucket}/test1')
-                        # with timer.time('readtime'):
-                        #    read(ds);
+                        for filesystem in filesystems:
 
-                        for op in self.operations:
-                            with timer.time(
-                                'runtime',
-                                operation=op.__name__,
-                                chunk_size=chunk_size,
-                                chunk_per_worker=chunk_per_worker,
-                                dataset_size=dataset_size,
-                                worker_per_node=wpn,
-                                threads_per_worker=num_threads,
-                                num_nodes=num,
-                                chunking_scheme=chunking_scheme,
-                                io_format=io_format,
-                                fs=fs,
-                                root=root,
-                                machine=machine,
-                                maxmemory_per_node=maxmemory_per_node,
-                                maxcore_per_node=maxcore_per_node,
-                                spil=spil,
-                            ):
-                                print(root)
-                                if op.__name__ == 'writefile':
-                                    op(ds, fs, io_format, root)
-                                elif op.__name__ == 'openfile' or op.__name__ == 'deletefile':
-                                    ds = op(fs, io_format, root)
-                                else:
-                                    op(ds)
+                            if filesystem == 's3':
+                                profile = parameters['profile']
+                                bucket = parameters['bucket']
+                                endpoint_url = parameters['endpoint_url']
+                                fs = fsspec.filesystem(
+                                    's3',
+                                    profile=profile,
+                                    anon=False,
+                                    client_kwargs={'endpoint_url': endpoint_url},
+                                )
+                                root = f'{bucket}/test1'
+                            elif filesystem == 'posix':
+                                fs = None
+                                root = None
+                            if not os.path.isdir('test1'):
+                                os.makedirs('test1')
+                            for chunking_scheme in chunking_schemes:
+
+                                logger.warning(
+                                    f'Benchmark starting with: \n\tworker_per_node = {wpn},'
+                                    f'\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},'
+                                    f'\n\tchunking_scheme = {chunking_scheme},'
+                                    f'\n\tchunk per worker = {chunk_per_worker}'
+                                    f'\n\tio_format = {io_format}'
+                                    f'\n\tfilesystem = {filesystem}'
+                                )
+                                ds = timeseries(
+                                    chunk_per_worker=chunk_per_worker,
+                                    chunk_size=chunk_size,
+                                    chunking_scheme=chunking_scheme,
+                                    num_nodes=num,
+                                    freq=freq,
+                                    worker_per_node=wpn,
+                                ).persist()
+                                wait(ds)
+                                dataset_size = format_bytes(ds.nbytes)
+                                logger.warning(ds)
+                                logger.warning(f'Dataset total size: {dataset_size}')
+
+                                for op in self.operations:
+                                    with timer.time(
+                                        'runtime',
+                                        operation=op.__name__,
+                                        chunk_size=chunk_size,
+                                        chunk_per_worker=chunk_per_worker,
+                                        dataset_size=dataset_size,
+                                        worker_per_node=wpn,
+                                        threads_per_worker=num_threads,
+                                        num_nodes=num,
+                                        chunking_scheme=chunking_scheme,
+                                        io_format=io_format,
+                                        filesystem=filesystem,
+                                        root=root,
+                                        machine=machine,
+                                        maxmemory_per_node=maxmemory_per_node,
+                                        maxcore_per_node=maxcore_per_node,
+                                        spil=spil,
+                                    ):
+                                        if op.__name__ == 'writefile':
+                                            filename = op(
+                                                ds, fs, io_format, root, chunk_size, chunking_scheme
+                                            )
+                                        elif (
+                                            op.__name__ == 'openfile' or op.__name__ == 'deletefile'
+                                        ):
+                                            ds = op(fs, io_format, root, filename)
+                                        else:
+                                            op(ds)
                         # kills ds, and every other dependent computation
                         logger.warning('Computation done')
                         self.client.cancel(ds)
-                        # with timer.time('deletefile'):
-                        #    ret = deletefile(fs, io_format, root=f'{bucket}/test1')
                     temp_df = timer.dataframe()
                     dfs.append(temp_df)
 

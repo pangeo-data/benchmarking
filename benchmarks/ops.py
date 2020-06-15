@@ -43,69 +43,61 @@ def readfile(ds):
     future.compute()
 
 
-def openfile(fs, io_format, root):
+def openfile(fs, io_format, root, filename):
     if isinstance(fs, fsspec.AbstractFileSystem):
         if io_format == 'zarr':
             # ds = xr.open_zarr(fs.get_mapper(f'{root}/sst.zarr'), consolidated=True)
-            ds = da.from_zarr(fs.get_mapper(f'{root}/sst.zarr/sst'))
+            ds = da.from_zarr(fs.get_mapper(f'{root}/{filename}.zarr/sst'))
         elif io_format == 'netcdf':
-            fileObj = fs.open(f'{root}/test1/sst.nc')
-            print(f'{root}/sst.nc')
+            fileObj = fs.open(f'{root}/test1/{filename}.nc')
             d = xr.open_dataset(fileObj, engine='h5netcdf')
             ds = da.from_array(d['sst'])
     else:
         if io_format == 'zarr':
-            ds = da.from_zarr('test1/sst.zarr/sst')
+            ds = da.from_zarr(f'test1/{filename}.zarr/sst')
         elif io_format == 'netcdf':
-            f = h5py.File('test1/sst.nc', 'r')
+            f = h5py.File(f'test1/{filename}.nc', 'r')
             ds = da.from_array(f['sst'])
 
     return ds
 
 
-def writefile(ds, fs, io_format, root):
+def writefile(ds, fs, io_format, root, chsz, chunking_schemes):
+    filename = f'sst.{chsz}{chunking_schemes}'
     if isinstance(fs, fsspec.AbstractFileSystem):
         if io_format == 'zarr':
-            store = fs.get_mapper(root=f'{root}/sst.zarr', check=False, create=True)
+            store = fs.get_mapper(root=f'{root}/{filename}.zarr', check=False, create=True)
             ds = ds.to_zarr(store, consolidated=True, compute=False, mode='w')
             ds.compute()
         elif io_format == 'netcdf':
-
-            # store = f'test1/sst.nc'
-            # ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
-            # ds.compute()
+            store = f'test1/{filename}.nc'
+            ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
+            ds.compute()
             fs.upload(lpath='test1', rpath=f'{root}/', recursive=True)
 
             # print(fs.ls(f'{root}'))
-            print(root)
-            print(fs.ls(f'{root}/test1'))
-            print(fs.du(f'{root}'))
-            print(fs.du(f'{root}/test1'))
-            # fileObj = fs.open(path=f'{root}/sst.nc')
-            # ds = xr.open_dataset(fileObj, engine='h5netcdf')
 
     else:
-        print(io_format)
         if io_format == 'zarr':
-            store = 'test1/sst.zarr'
+            store = f'test1/{filename}.zarr'
             ds = ds.to_zarr(store=store, consolidated=True, compute=False, mode='w')
         elif io_format == 'netcdf':
-            store = 'test1/sst.nc'
+            store = f'test1/{filename}.nc'
             ds = ds.to_netcdf(store, engine='h5netcdf', compute=False, mode='w')
         ds.compute()
 
-    return ds
+    return filename
 
 
-def deletefile(fs, io_format, root):
+def deletefile(fs, io_format, root, filename):
     if isinstance(fs, fsspec.AbstractFileSystem):
         if io_format == 'zarr':
-            ret = fs.rm(path=f'{root}/sst.zarr', recursive=True)
+            ret = fs.rm(path=f'{root}/{filename}.zarr', recursive=True)
         elif io_format == 'netcdf':
-            ret = fs.rm(path=f'{root}/test1/sst.nc')
+            ret = fs.rm(path=f'{root}/test1', recursive=True)
     else:
         if io_format == 'zarr':
-            ret = os.rmdir('sst.zarr')
+            ret = os.system('rm -rf test1')
         elif io_format == 'netcdf':
-            ret = os.remove('sst.nc')
+            ret = os.remove(f'test1/{filename}.nc')
     return ret
