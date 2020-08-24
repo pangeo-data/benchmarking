@@ -53,9 +53,9 @@ To run the benchmarks, a command utility `pangeobench` is provided in this repos
 To use it, you simply need to specify the location of the benchmark configuration file. For example:
 
 ```bash
-```running a weak scaling analysis
+#  running a weak scaling analysis
 ./pangeobench benchmark-configs/cheyenne.readwrite.yaml
-```running a strong scaling analysis
+#  running a strong scaling analysis
 ./pangeobench benchmark-configs/cheyenne.write.yaml
 ./pangeobench benchmark-configs/cheyenne.read.yaml
 ```
