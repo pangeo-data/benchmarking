@@ -9,15 +9,18 @@ from distributed.utils import parse_bytes
 
 
 def timeseries(
+    fixed_totalsize=False,
     chunk_per_worker=10,
     chunk_size='128 MB',
     num_nodes=1,
     worker_per_node=1,
     chunking_scheme=None,
-    # io_format=None,
+    io_format=None,
     store_scheme=None,
-    lat=320,
-    lon=384,
+    # lat=320,
+    # lon=384,
+    lat=2560,
+    lon=3840,
     start='1980-01-01',
     freq='1H',
     nan=False,
@@ -83,9 +86,10 @@ def timeseries(
     itemsize = dt.itemsize
     chunk_size = parse_bytes(chunk_size)
     total_bytes = chunk_size * num_nodes * worker_per_node * chunk_per_worker
-    # total_bytes = chunk_size * num_nodes * worker_per_node
     size = total_bytes / itemsize
+    print(size)
     timesteps = math.ceil(size / (lat * lon))
+    print(timesteps)
     shape = (timesteps, lon, lat)
     if chunking_scheme == 'temporal':
         x = math.ceil(chunk_size / (lon * lat * itemsize))
@@ -116,7 +120,7 @@ def timeseries(
             'history': 'created for compute benchmarking',
         },
     ).to_dataset()
-    return ds
+    return ds, chunks
 
 
 def randn(shape, chunks=None, nan=False, seed=0):

@@ -6,6 +6,7 @@ dependencies:
   - dask-jobqueue
   - dask-labextension
   - dask>=2.3
+  - fsspec>=0.7.3
   - holoviews
   - hvplot
   - ipywidgets
@@ -19,5 +20,5 @@ dependencies:
   - s3fs>=0.4.2
   - scipy
   - setuptools
-  - xarray>=0.12.3
+  - xarray>=0.15.1
   - zarr

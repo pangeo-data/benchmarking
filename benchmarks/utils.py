@@ -6,7 +6,7 @@ from time import sleep, time
 
 import fsspec
 import pandas as pd
-from distributed import Client, wait
+from distributed import Client
 from distributed.utils import format_bytes
 
 from .datasets import timeseries
@@ -71,8 +71,11 @@ class Runner:
                 self.params = yaml.safe_load(f)
         except Exception as exc:
             raise exc
-        self.computations = [spatial_mean, temporal_mean, climatology, anomaly]
-        self.operations = [writefile, openfile, readfile, deletefile]
+        self.operations = {}
+        self.operations['computations'] = [spatial_mean, temporal_mean, climatology, anomaly]
+        self.operations['readwrite'] = [writefile, openfile, readfile, deletefile]
+        self.operations['write'] = [writefile]
+        self.operations['read'] = [openfile, readfile]
         self.client = None
 
     def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
@@ -103,6 +106,7 @@ class Runner:
             walltime=walltime,
             env_extra=['OMP_NUM_THREADS=1'],
             extra=['--nthreads 1'],
+            project='ntdd0004',
         )
 
         self.client = Client(cluster)
@@ -117,6 +121,7 @@ class Runner:
 
     def run(self):
         logger.warning('Reading configuration YAML config file')
+        operation_choice = self.params['operation_choice']
         machine = self.params['machine']
         job_scheduler = self.params['job_scheduler']
         queue = self.params['queue']
@@ -137,7 +142,9 @@ class Runner:
         chunking_schemes = parameters['chunking_scheme']
         io_formats = parameters['io_format']
         filesystems = parameters['filesystem']
+        fixed_totalsize = parameters['fixed_totalsize']
         chsz = parameters['chunk_size']
+        writefile_dir = parameters['writefile_dir']
         for wpn in num_workers:
             self.create_cluster(
                 job_scheduler=job_scheduler,
@@ -151,12 +158,14 @@ class Runner:
                 self.client.cluster.scale(num * wpn)
                 cluster_wait(self.client, num * wpn)
                 timer = DiagnosticTimer()
-                dfs = []
+                # dfs = []
                 logger.warning(
                     '#####################################################################\n'
                     f'Dask cluster:\n'
                     f'\t{self.client.cluster}\n'
                 )
+                now = datetime.datetime.now()
+                csv_filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
                 for chunk_size in chsz:
 
                     for io_format in io_formats:
@@ -176,9 +185,9 @@ class Runner:
                                 root = f'{bucket}/test1'
                             elif filesystem == 'posix':
                                 fs = None
-                                root = None
-                            if not os.path.isdir('test1'):
-                                os.makedirs('test1')
+                                root = writefile_dir
+                                if not os.path.isdir(f'{root}/test1'):
+                                    os.makedirs(f'{root}/test1')
                             for chunking_scheme in chunking_schemes:
 
                                 logger.warning(
@@ -189,23 +198,26 @@ class Runner:
                                     f'\n\tio_format = {io_format}'
                                     f'\n\tfilesystem = {filesystem}'
                                 )
-                                ds = timeseries(
+                                ds, chunks = timeseries(
+                                    fixed_totalsize=fixed_totalsize,
                                     chunk_per_worker=chunk_per_worker,
                                     chunk_size=chunk_size,
                                     chunking_scheme=chunking_scheme,
+                                    io_format=io_format,
                                     num_nodes=num,
                                     freq=freq,
                                     worker_per_node=wpn,
-                                ).persist()
-                                wait(ds)
+                                )
+                                # wait(ds)
                                 dataset_size = format_bytes(ds.nbytes)
                                 logger.warning(ds)
                                 logger.warning(f'Dataset total size: {dataset_size}')
 
-                                for op in self.operations:
+                                for op in self.operations[operation_choice]:
                                     with timer.time(
                                         'runtime',
                                         operation=op.__name__,
+                                        fixed_totalsize=fixed_totalsize,
                                         chunk_size=chunk_size,
                                         chunk_per_worker=chunk_per_worker,
                                         dataset_size=dataset_size,
@@ -221,27 +233,28 @@ class Runner:
                                         maxcore_per_node=maxcore_per_node,
                                         spil=spil,
                                     ):
+                                        fname = f'{chunk_size}{chunking_scheme}{filesystem}{num}'
                                         if op.__name__ == 'writefile':
-                                            filename = op(
-                                                ds, fs, io_format, root, chunk_size, chunking_scheme
-                                            )
-                                        elif (
-                                            op.__name__ == 'openfile' or op.__name__ == 'deletefile'
-                                        ):
+                                            print(ds.sst.data.chunksize)
+                                            filename = op(ds, fs, io_format, root, fname)
+                                        elif op.__name__ == 'openfile':
+                                            ds = op(fs, io_format, root, chunks, chunk_size)
+                                        elif op.__name__ == 'deletefile':
                                             ds = op(fs, io_format, root, filename)
                                         else:
                                             op(ds)
                         # kills ds, and every other dependent computation
                         logger.warning('Computation done')
                         self.client.cancel(ds)
-                    temp_df = timer.dataframe()
-                    dfs.append(temp_df)
+                        temp_df = timer.dataframe()
+                        temp_df.to_csv(csv_filename, index=False)
+                        # dfs.append(temp_df)
 
-                now = datetime.datetime.now()
-                filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-                df = pd.concat(dfs)
-                df.to_csv(filename, index=False)
-                logger.warning(f'Persisted benchmark result file: {filename}')
+                # now = datetime.datetime.now()
+                # filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+                # df = pd.concat(dfs)
+                # df.to_csv(filename, index=False)
+                logger.warning(f'Persisted benchmark result file: {csv_filename}')
 
             logger.warning(
                 'Shutting down the client and cluster before changing number of workers per nodes'
