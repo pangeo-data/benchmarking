@@ -52,26 +52,41 @@ def delete_dir(dir):
         os.remove(os.path.join(dir, file))
 
 
-def openfile(fs, io_format, root, chunks, chunk_size):
-    print('openfile')
-    print(chunks)
+def get_filelist(fs, io_format, root, chunk_size):
     if isinstance(fs, fsspec.AbstractFileSystem):
         if io_format == 'zarr':
-            f = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
-            ds = da.from_zarr(fs.get_mapper(f'{f[0]}/sst'))
-            print(ds)
+            fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
         elif io_format == 'netcdf':
             subs = 'zarr'
             zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
             fileObjs = [fs.open(p) for p in fs.ls(f'{root}/') if p not in zarr_flist]
-            print(list(filter(lambda x: 'nc' in x, fs.glob(f'{root}/*'))))
-            # datasets = [xr.open_dataset(p, engine='h5netcdf', chunks={'time': chunks[0][0]}) for p in fileObjs]
-            datasets = [
-                xr.open_dataset(p, engine='h5netcdf', chunks={'time': chunks[0]}) for p in fileObjs
-            ]
-            f = xr.concat(datasets, dim='time')
-            ds = f.sst.data
-            print(ds)
+    else:
+        if io_format == 'zarr':
+            fileObjs = Path(f'{root}').glob(f'test1/sst.{chunk_size}*.zarr')
+    return fileObjs
+
+
+def openfile(fs, io_format, root, chunks, chunk_size):
+    # print('openfile')
+    # print(chunks)
+    # if isinstance(fs, fsspec.AbstractFileSystem):
+    if io_format == 'zarr':
+        fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
+        print(f'{root}/sst.{chunk_size}*.zarr')
+        # ds = da.from_zarr(fs.get_mapper(f'{f[0]}/sst'))
+        f = xr.open_zarr(fs.get_mapper(f'{fileObjs[0]}'))
+        ds = f.sst.data
+        print(ds)
+    elif io_format == 'netcdf':
+        subs = 'zarr'
+        zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
+        fileObjs = [fs.open(p) for p in fs.ls(f'{root}/') if p not in zarr_flist]
+        print(list(filter(lambda x: 'nc' in x, fs.glob(f'{root}/*'))))
+        datasets = [xr.open_dataset(p, chunks={'time': chunks[0]}) for p in fileObjs]
+        f = xr.concat(datasets, dim='time')
+        ds = f.sst.data
+        print(ds)
+    '''
     else:
         if io_format == 'zarr':
             f = Path(f'{root}').glob(f'test1/sst.{chunk_size}*.zarr')
@@ -79,11 +94,11 @@ def openfile(fs, io_format, root, chunks, chunk_size):
             print(ds)
         elif io_format == 'netcdf':
             f = xr.open_mfdataset(
-                f'{root}/test1/sst.*.nc', combine='by_coords', chunks={'time': chunks[0]}
+                f'{root}/test1/sst.*.nc', combine='by_coords', engine='h5netcdf', chunks={'time': chunks[0]}
             )
             ds = f.sst.data
             print(ds)
-
+        '''
     return ds
 
 
@@ -107,7 +122,7 @@ def writefile(ds, fs, io_format, root, fname):
         ds_list = list(split_by_chunks(ds))
         dss = [item[1] for item in ds_list]
         paths = [create_filepath(ds, prefix=filename, root_path=f'{root}/test1') for ds in dss]
-        xr.save_mfdataset(datasets=dss, paths=paths)
+        xr.save_mfdataset(datasets=dss, paths=paths, engine='h5netcdf', parallel=True)
         if isinstance(fs, fsspec.AbstractFileSystem):
             fs.upload(lpath=f'{root}/test1', rpath=f'{root}/', recursive=True)
 

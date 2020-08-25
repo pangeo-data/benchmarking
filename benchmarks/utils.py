@@ -8,6 +8,7 @@ import fsspec
 import pandas as pd
 from distributed import Client
 from distributed.utils import format_bytes
+from fsspec.implementations.local import LocalFileSystem
 
 from .datasets import timeseries
 from .ops import (
@@ -184,10 +185,10 @@ class Runner:
                                 )
                                 root = f'{bucket}/test1'
                             elif filesystem == 'posix':
-                                fs = None
+                                fs = LocalFileSystem()
                                 root = writefile_dir
-                                if not os.path.isdir(f'{root}/test1'):
-                                    os.makedirs(f'{root}/test1')
+                                if not os.path.isdir(f'{root}'):
+                                    os.makedirs(f'{root}')
                             for chunking_scheme in chunking_schemes:
 
                                 logger.warning(
