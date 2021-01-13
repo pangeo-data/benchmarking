@@ -1,9 +1,8 @@
 import itertools
 import os
-from pathlib import Path
+import shutil
 
 import dask.array as da
-import fsspec
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -39,7 +38,6 @@ def anomaly(ds):
 
 
 def readfile(ds):
-    print('readfile')
     null_store = DevNullStore()
     null_store['foo'] = 'bar'
     future = da.store(ds, null_store, lock=False, compute=False)
@@ -53,63 +51,39 @@ def delete_dir(dir):
 
 
 def get_filelist(fs, io_format, root, chunk_size):
-    if isinstance(fs, fsspec.AbstractFileSystem):
-        if io_format == 'zarr':
-            fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
-        elif io_format == 'netcdf':
-            subs = 'zarr'
-            zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
-            fileObjs = [fs.open(p) for p in fs.ls(f'{root}/') if p not in zarr_flist]
-    else:
-        if io_format == 'zarr':
-            fileObjs = Path(f'{root}').glob(f'test1/sst.{chunk_size}*.zarr')
+    if io_format == 'zarr':
+        fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
+    elif (io_format == 'netcdf') & (fs.protocol[0] == 's3'):
+        # subs = 'zarr'
+        # zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
+        fileObjs = [fs.open(p) for p in fs.glob(f'{root}/sst.{chunk_size}*.nc')]
+
     return fileObjs
 
 
 def openfile(fs, io_format, root, chunks, chunk_size):
-    # print('openfile')
-    # print(chunks)
-    # if isinstance(fs, fsspec.AbstractFileSystem):
     if io_format == 'zarr':
         fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
-        print(f'{root}/sst.{chunk_size}*.zarr')
-        # ds = da.from_zarr(fs.get_mapper(f'{f[0]}/sst'))
+        print(fileObjs)
         f = xr.open_zarr(fs.get_mapper(f'{fileObjs[0]}'))
         ds = f.sst.data
-        print(ds)
-    elif io_format == 'netcdf':
-        subs = 'zarr'
-        zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
-        fileObjs = [fs.open(p) for p in fs.ls(f'{root}/') if p not in zarr_flist]
-        print(list(filter(lambda x: 'nc' in x, fs.glob(f'{root}/*'))))
+    elif (io_format == 'netcdf') & (fs.protocol[0] == 's3'):
+        fileObjs = [fs.open(p) for p in fs.glob(f'{root}/sst.{chunk_size}*.nc')]
+        print(fileObjs)
         datasets = [xr.open_dataset(p, chunks={'time': chunks[0]}) for p in fileObjs]
         f = xr.concat(datasets, dim='time')
         ds = f.sst.data
-        print(ds)
-    '''
-    else:
-        if io_format == 'zarr':
-            f = Path(f'{root}').glob(f'test1/sst.{chunk_size}*.zarr')
-            ds = da.from_zarr(f'{next(f).as_posix()}/sst')
-            print(ds)
-        elif io_format == 'netcdf':
-            f = xr.open_mfdataset(
-                f'{root}/test1/sst.*.nc', combine='by_coords', engine='h5netcdf', chunks={'time': chunks[0]}
-            )
-            ds = f.sst.data
-            print(ds)
-        '''
+    elif (io_format == 'netcdf') & (fs.protocol == 'file'):
+        f = xr.open_mfdataset(f'{root}/sst.*.nc', combine='by_coords', chunks={'time': chunks[0]})
+        ds = f.sst.data
+
     return ds
 
 
 def writefile(ds, fs, io_format, root, fname):
     filename = f'sst.{fname}'
-    # if isinstance(fs, fsspec.AbstractFileSystem):
     if io_format == 'zarr':
-        if isinstance(fs, fsspec.AbstractFileSystem):
-            store = fs.get_mapper(root=f'{root}/{filename}.zarr', check=False, create=True)
-        else:
-            store = f'{root}/test1/{filename}.zarr'
+        store = fs.get_mapper(root=f'{root}/{filename}.zarr', check=False, create=True)
         ds = ds.to_zarr(
             store,
             encoding={'sst': {'compressor': None}},
@@ -121,28 +95,23 @@ def writefile(ds, fs, io_format, root, fname):
     elif io_format == 'netcdf':
         ds_list = list(split_by_chunks(ds))
         dss = [item[1] for item in ds_list]
-        paths = [create_filepath(ds, prefix=filename, root_path=f'{root}/test1') for ds in dss]
-        xr.save_mfdataset(datasets=dss, paths=paths, engine='h5netcdf', parallel=True)
-        if isinstance(fs, fsspec.AbstractFileSystem):
-            fs.upload(lpath=f'{root}/test1', rpath=f'{root}/', recursive=True)
+        paths = [create_filepath(ds, prefix=filename, root_path=f'{root}') for ds in dss]
+        xr.save_mfdataset(datasets=dss, paths=paths)
+        if fs.protocol[0] == 's3':
+            fs.upload(lpath=f'{root}', rpath=f'{root}/', recursive=True)
 
     return filename
 
 
 def deletefile(fs, io_format, root, filename):
-    if isinstance(fs, fsspec.AbstractFileSystem):
+    if fs.protocol[0] == 's3':
         if io_format == 'zarr':
             ret = fs.rm(path=f'{root}/{filename}.zarr', recursive=True)
-            # ret = fs.rm(path=f'{root}', recursive=True)
         elif io_format == 'netcdf':
             ret = delete_dir('test1')
-            ret = fs.rm(path=f'{root}/test1', recursive=True)
+            ret = fs.rm(path=f'{root}', recursive=True)
     else:
-        if io_format == 'zarr':
-            ret = os.system(f'rm -rf {root}/test1')
-            # ret = delete_dir('test1')
-        elif io_format == 'netcdf':
-            ret = delete_dir(f'{root}/test1')
+        ret = shutil.rmtree(f'{root}')
     return ret
 
 
@@ -152,8 +121,6 @@ def split_by_chunks(dataset):
     """
     chunk_slices = {}
     for dim, chunks in dataset.chunks.items():
-        print(dim)
-        print(dataset.sizes[dim])
         slices = []
         start = 0
         if len(chunks) > 10:
@@ -165,7 +132,6 @@ def split_by_chunks(dataset):
                 break
             stop = start + chunks[i] * chunk_range
             slices.append(slice(start, stop))
-            print(start, stop)
             start = stop
         chunk_slices[dim] = slices
     for slices in itertools.product(*chunk_slices.values()):

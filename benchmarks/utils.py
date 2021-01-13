@@ -145,7 +145,7 @@ class Runner:
         filesystems = parameters['filesystem']
         fixed_totalsize = parameters['fixed_totalsize']
         chsz = parameters['chunk_size']
-        writefile_dir = parameters['writefile_dir']
+        local_dir = parameters['local_dir']
         for wpn in num_workers:
             self.create_cluster(
                 job_scheduler=job_scheduler,
@@ -159,7 +159,6 @@ class Runner:
                 self.client.cluster.scale(num * wpn)
                 cluster_wait(self.client, num * wpn)
                 timer = DiagnosticTimer()
-                # dfs = []
                 logger.warning(
                     '#####################################################################\n'
                     f'Dask cluster:\n'
@@ -174,6 +173,13 @@ class Runner:
                         for filesystem in filesystems:
 
                             if filesystem == 's3':
+                                if (io_format == 'netcdf') & (
+                                    operation_choice == 'readwrite' or operation_choice == 'write'
+                                ):
+                                    logger.warning(
+                                        f'### Skipping NetCDF S3 {operation_choice} benchmarking ###\n'
+                                    )
+                                    continue
                                 profile = parameters['profile']
                                 bucket = parameters['bucket']
                                 endpoint_url = parameters['endpoint_url']
@@ -182,15 +188,16 @@ class Runner:
                                     profile=profile,
                                     anon=False,
                                     client_kwargs={'endpoint_url': endpoint_url},
+                                    skip_instance_cache=True,
+                                    use_listings_cache=True,
                                 )
-                                root = f'{bucket}/test1'
+                                root = f'{bucket}'
                             elif filesystem == 'posix':
                                 fs = LocalFileSystem()
-                                root = writefile_dir
+                                root = local_dir
                                 if not os.path.isdir(f'{root}'):
                                     os.makedirs(f'{root}')
                             for chunking_scheme in chunking_schemes:
-
                                 logger.warning(
                                     f'Benchmark starting with: \n\tworker_per_node = {wpn},'
                                     f'\n\tnum_nodes = {num}, \n\tchunk_size = {chunk_size},'
@@ -209,7 +216,11 @@ class Runner:
                                     freq=freq,
                                     worker_per_node=wpn,
                                 )
-                                # wait(ds)
+                                if (chunking_scheme == 'auto') & (io_format == 'netcdf'):
+                                    logger.warning(
+                                        '### NetCDF benchmarking cannot use auto chunking_scheme ###'
+                                    )
+                                    continue
                                 dataset_size = format_bytes(ds.nbytes)
                                 logger.warning(ds)
                                 logger.warning(f'Dataset total size: {dataset_size}')
@@ -236,7 +247,6 @@ class Runner:
                                     ):
                                         fname = f'{chunk_size}{chunking_scheme}{filesystem}{num}'
                                         if op.__name__ == 'writefile':
-                                            print(ds.sst.data.chunksize)
                                             filename = op(ds, fs, io_format, root, fname)
                                         elif op.__name__ == 'openfile':
                                             ds = op(fs, io_format, root, chunks, chunk_size)
@@ -249,12 +259,7 @@ class Runner:
                         self.client.cancel(ds)
                         temp_df = timer.dataframe()
                         temp_df.to_csv(csv_filename, index=False)
-                        # dfs.append(temp_df)
 
-                # now = datetime.datetime.now()
-                # filename = f"{output_dir}/compute_study_{now.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-                # df = pd.concat(dfs)
-                # df.to_csv(filename, index=False)
                 logger.warning(f'Persisted benchmark result file: {csv_filename}')
 
             logger.warning(
