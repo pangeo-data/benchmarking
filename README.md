@@ -46,32 +46,65 @@ benchmark-configs/
 
 In case you are interested in running the benchmarks on another system, you will need to create a new YAML file for your system with the right configurations. See the existing config files for reference.
 
-## Running the Benchmarks 
+## Running the Benchmarks
 ### from command line
 
 To run the benchmarks, a command utility `pangeobench` is provided in this repository.
 To use it, you simply need to specify the location of the benchmark configuration file. For example:
 
 ```bash
-#  running a weak scaling analysis
-./pangeobench benchmark-configs/cheyenne.readwrite.yaml
-#  running a strong scaling analysis
-./pangeobench benchmark-configs/cheyenne.write.yaml
-./pangeobench benchmark-configs/cheyenne.read.yaml
+./pangeobench run benchmark-configs/cheyenne.readwrite.yaml  #running a weak scaling analysis
+./pangeobench run benchmark-configs/cheyenne.write.yaml      #running a strong scaling analysis
+./pangeobench run benchmark-configs/cheyenne.read.yaml
 ```
 
 ```bash
 $ ./pangeobench --help
-Usage: pangeobench [OPTIONS] CONFIG_FILE
+Usage: pangeobench [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  run     Run benchmarking
+  upload  Upload benchmarking files from local directory to S3 object store
+```
+```bash
+./pangeobench run --help
+Usage: pangeobench run [OPTIONS] CONFIG_FILE
+
+  Run benchmarking
 
 Options:
   --help  Show this message and exit.
 ```
+```bash
+./pangeobench upload --help
+Usage: pangeobench upload [OPTIONS]
 
-## Running the Benchmarks 
-### from jupyter notebook.  
+  Upload benchmarking files from local directory to S3 object store
 
-To run the benchmarks from jupyter notebook, install 'pangeo-bench' kernel to your jupyter notebook enviroment, then start run.ipynb notebook.  You will need to specify the configuration file as described above in your notebook.  
+Options:
+  --local_dir PATH     Local directory to upload from  [default: test_write]
+  --bucket TEXT        Bucket and directory name of S3 object store  [default:
+                       pangeo-bench-local/test_write]
+
+  --profile TEXT       Profile for accessing S3 object store  [default:
+                       default]
+
+  --endpoint_url TEXT  Endpoint url of S3 object store  [default:
+                       https://***.ucar.edu]
+
+  --config_file PATH   Config file includes all other options, if not
+                       provided, you have to specify all other options from
+                       command lines
+
+  --help               Show this message and exit.
+```
+## Running the Benchmarks
+### from jupyter notebook.
+
+To run the benchmarks from jupyter notebook, install 'pangeo-bench' kernel to your jupyter notebook enviroment, then start run.ipynb notebook.  You will need to specify the configuration file as described above in your notebook.
 
 To install your 'pangeo-bench' kernel to your jupyter notebook enviroment you'll need to connect a terminal of your HPC enviroment and run following command.
 
@@ -94,4 +127,4 @@ Benchmark results are persisted in the `results` directory by default. The exact
 
 ## Visualization
 
-Visualisation can be done using jupyter notebooks placed in analysis directories.  
+Visualisation can be done using jupyter notebooks placed in analysis directories.
