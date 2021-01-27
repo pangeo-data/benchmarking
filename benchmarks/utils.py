@@ -10,6 +10,8 @@ from distributed import Client
 from distributed.utils import format_bytes
 from fsspec.implementations.local import LocalFileSystem
 
+from . import __version__
+from .conda_env_export import env_dump
 from .datasets import timeseries
 from .ops import (
     anomaly,
@@ -107,7 +109,6 @@ class Runner:
             walltime=walltime,
             env_extra=['OMP_NUM_THREADS=1'],
             extra=['--nthreads 1'],
-            project='ntdd0004',
         )
 
         self.client = Client(cluster)
@@ -121,6 +122,7 @@ class Runner:
         logger.warning(f'Dask cluster dashboard_link: {self.client.cluster.dashboard_link}')
 
     def run(self):
+
         logger.warning('Reading configuration YAML config file')
         operation_choice = self.params['operation_choice']
         machine = self.params['machine']
@@ -145,7 +147,9 @@ class Runner:
         filesystems = parameters['filesystem']
         fixed_totalsize = parameters['fixed_totalsize']
         chsz = parameters['chunk_size']
-        local_dir = parameters['local_dir']
+        local_dir = self.params['local_dir']
+        env_export_filename = f"{output_dir}/env_export_{now.strftime('%Y-%m-%d_%H-%M-%S')}.yml"
+        env_dump('./binder/environment.yml', env_export_filename)
         for wpn in num_workers:
             self.create_cluster(
                 job_scheduler=job_scheduler,
@@ -180,9 +184,9 @@ class Runner:
                                         f'### Skipping NetCDF S3 {operation_choice} benchmarking ###\n'
                                     )
                                     continue
-                                profile = parameters['profile']
-                                bucket = parameters['bucket']
-                                endpoint_url = parameters['endpoint_url']
+                                profile = self.params['profile']
+                                bucket = self.params['bucket']
+                                endpoint_url = self.params['endpoint_url']
                                 fs = fsspec.filesystem(
                                     's3',
                                     profile=profile,
@@ -244,6 +248,8 @@ class Runner:
                                         maxmemory_per_node=maxmemory_per_node,
                                         maxcore_per_node=maxcore_per_node,
                                         spil=spil,
+                                        version=__version__,
+                                        env_export=env_export_filename,
                                     ):
                                         fname = f'{chunk_size}{chunking_scheme}{filesystem}{num}'
                                         if op.__name__ == 'writefile':

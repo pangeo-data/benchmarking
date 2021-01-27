@@ -8,7 +8,7 @@ setup(
     scripts=['pangeobench'],
     author='Haiying Xu',
     author_email='haiyingx@ucar.edu',
-    description='Pangeo zarr benchmarking package',
+    description='Pangeo IO benchmarking package',
     long_description=long_description,
     long_description_content_type='text/markdown',
     use_scm_version={'version_scheme': 'post-release', 'local_scheme': 'dirty-tag'},

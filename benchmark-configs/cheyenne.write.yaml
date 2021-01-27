@@ -14,16 +14,18 @@ parameters:
     - 10
   number_of_threads_per_workers: 1
   number_of_nodes:
-    - 6
+    - 2
   chunk_size:
-    - 768MB
+    - 64MB
   chunking_scheme:
-    - auto
+    - temporal
   io_format:
     - zarr
+    - netcdf
   filesystem:
+    - posix
     - s3
-  profile: stratus-benchmarking
-  bucket: pangeo-bench-local
-  endpoint_url: https://stratus.ucar.edu
-  writefile_dir: /glade/scratch/haiyingx/
+profile: default
+bucket: pangeo-bench-local/test_write
+endpoint_url: https://stratus.ucar.edu
+local_dir: test_write

@@ -9,28 +9,23 @@ chunk_per_worker: 10
 spil: false
 freq: 1D
 parameters:
-  fixed_totalsize: True
+  fixed_totalsize: False
   number_of_workers_per_nodes:
     - 10
   number_of_threads_per_workers: 1
   number_of_nodes:
     - 2
-    - 3
   chunk_size:
     - 64MB
-    - 128MB
-    - 192MB
-    - 256MB
-    - 384MB
-    - 512MB
-    - 768MB
   chunking_scheme:
-    - auto
+    - temporal
   io_format:
     - zarr
+    - netcdf
   filesystem:
+    - posix
     - s3
-  profile: stratus-benchmarking
-  bucket: pangeo-bench-local
-  endpoint_url: https://stratus.ucar.edu
-  writefile_dir: /glade/scratch/haiyingx/
+profile: default
+bucket: pangeo-bench-local/test_readwrite
+endpoint_url: https://stratus.ucar.edu
+local_dir: test_readwrite

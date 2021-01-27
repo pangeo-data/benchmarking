@@ -1,5 +1,4 @@
 import itertools
-import os
 import shutil
 
 import dask.array as da
@@ -44,17 +43,10 @@ def readfile(ds):
     future.compute()
 
 
-def delete_dir(dir):
-    files = os.listdir(dir)
-    for file in files:
-        os.remove(os.path.join(dir, file))
-
-
 def get_filelist(fs, io_format, root, chunk_size):
     if io_format == 'zarr':
         fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
     elif (io_format == 'netcdf') & (fs.protocol[0] == 's3'):
-        # subs = 'zarr'
         # zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
         fileObjs = [fs.open(p) for p in fs.glob(f'{root}/sst.{chunk_size}*.nc')]
 
@@ -62,19 +54,39 @@ def get_filelist(fs, io_format, root, chunk_size):
 
 
 def openfile(fs, io_format, root, chunks, chunk_size):
+    files = f'{root}/sst.{chunk_size}*'
     if io_format == 'zarr':
-        fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
-        print(fileObjs)
-        f = xr.open_zarr(fs.get_mapper(f'{fileObjs[0]}'))
+        fileObjs = fs.glob(f'{files}.zarr')
+        try:
+            f = xr.open_zarr(fs.get_mapper(f'{fileObjs[0]}'))
+        except Exception as exc:
+            print('=============Error===============')
+            print(f'No {files}.zarr are at {root}/')
+            print('=============Error===============')
+            raise exc
         ds = f.sst.data
     elif (io_format == 'netcdf') & (fs.protocol[0] == 's3'):
-        fileObjs = [fs.open(p) for p in fs.glob(f'{root}/sst.{chunk_size}*.nc')]
-        print(fileObjs)
+        fileObjs = [fs.open(p) for p in fs.glob(f'{files}.nc')]
         datasets = [xr.open_dataset(p, chunks={'time': chunks[0]}) for p in fileObjs]
-        f = xr.concat(datasets, dim='time')
+        try:
+            f = xr.concat(datasets, dim='time')
+        except Exception as exc:
+            print('=============Error===============')
+            print(
+                f'No NetCDF file {files}.nc is at s3://{root}, please run the following command to upload files to S3 store'
+            )
+            print('./pangeobench upload --config_file ***.yaml')
+            print('==============Error===============')
+            raise exc
         ds = f.sst.data
     elif (io_format == 'netcdf') & (fs.protocol == 'file'):
-        f = xr.open_mfdataset(f'{root}/sst.*.nc', combine='by_coords', chunks={'time': chunks[0]})
+        try:
+            f = xr.open_mfdataset(f'{files}.nc', combine='by_coords', chunks={'time': chunks[0]})
+        except Exception as exc:
+            print('=============Error===============')
+            print(f'No {files}.nc are at {root}/')
+            print('=============Error===============')
+            raise exc
         ds = f.sst.data
 
     return ds
@@ -108,7 +120,6 @@ def deletefile(fs, io_format, root, filename):
         if io_format == 'zarr':
             ret = fs.rm(path=f'{root}/{filename}.zarr', recursive=True)
         elif io_format == 'netcdf':
-            ret = delete_dir('test1')
             ret = fs.rm(path=f'{root}', recursive=True)
     else:
         ret = shutil.rmtree(f'{root}')
