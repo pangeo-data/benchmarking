@@ -50,8 +50,7 @@ class DiagnosticTimer:
 
 
 def cluster_wait(client, n_workers):
-    """ Delay process until all workers in the cluster are available.
-    """
+    """ Delay process until all workers in the cluster are available. """
     start = time()
     wait_thresh = 600
     worker_thresh = n_workers * 0.95
@@ -82,8 +81,7 @@ class Runner:
         self.client = None
 
     def create_cluster(self, job_scheduler, maxcore, walltime, memory, queue, wpn):
-        """ Creates a dask cluster using dask_jobqueue
-        """
+        """ Creates a dask cluster using dask_jobqueue """
         logger.warning('Creating a dask cluster using dask_jobqueue')
         logger.warning(f'Job Scheduler: {job_scheduler}')
         logger.warning(f'Memory size for each node: {memory}')

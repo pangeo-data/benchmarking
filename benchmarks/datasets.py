@@ -25,7 +25,7 @@ def timeseries(
     freq='1H',
     nan=False,
 ):
-    """ Create synthetic Xarray dataset filled with random
+    """Create synthetic Xarray dataset filled with random
     data.
 
     Parameters

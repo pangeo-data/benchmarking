@@ -5,10 +5,10 @@ import yaml
 
 
 def export_env(history_only=False, include_builds=False):
-    '''
+    """
     COPIED from https://gist.github.com/gwerbin/
     dab3cf5f8db07611c6e0aeec177916d8#file-conda_env_export-py
-    '''
+    """
     """ Capture `conda env export` output """
     cmd = ['conda', 'env', 'export']
     if history_only:
