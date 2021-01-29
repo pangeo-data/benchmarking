@@ -50,11 +50,33 @@ In case you are interested in running the benchmarks on another system, you will
 ### from command line
 
 To run the benchmarks, a command utility `pangeobench` is provided in this repository.
-To use it, you simply need to specify the location of the benchmark configuration file. For example:
+To use it to benchmark Pangeo computation, you need to specify subcommand `run` and the location of the benchmark configuration
 
 ```bash
-./pangeobench run benchmark-configs/cheyenne.readwrite.yaml  #running a weak scaling analysis
-./pangeobench run benchmark-configs/cheyenne.write.yaml      #running a strong scaling analysis
+./pangebench run benchmark-configs/cheyenne.computation.yaml
+```
+
+
+To use it to benchmark Pangeo IO with weak scaling analysis, you need to specify subcommand `run` and the location of the benchmark configuration
+
+
+```bash
+./pangeobench run benchmark-configs/cheyenne.readwrite.yaml
+```
+
+To use it to benchmark Pangeo IO with strong scaling analysis, you need the following three steps
+
+First, create data files:
+```bash
+./pangeobench run benchmark-configs/cheyenne.write.yaml
+```
+Second, upload data files to S3 object store if you need to benchmark S3 object store:
+```bash
+./pangebench upload --config_file benchmark-configs/cheyenne.write.yaml
+```
+
+Last, read data files:
+```bash
 ./pangeobench run benchmark-configs/cheyenne.read.yaml
 ```
 
@@ -68,38 +90,6 @@ Options:
 Commands:
   run     Run benchmarking
   upload  Upload benchmarking files from local directory to S3 object store
-```
-```bash
-./pangeobench run --help
-Usage: pangeobench run [OPTIONS] CONFIG_FILE
-
-  Run benchmarking
-
-Options:
-  --help  Show this message and exit.
-```
-```bash
-./pangeobench upload --help
-Usage: pangeobench upload [OPTIONS]
-
-  Upload benchmarking files from local directory to S3 object store
-
-Options:
-  --local_dir PATH     Local directory to upload from  [default: test_write]
-  --bucket TEXT        Bucket and directory name of S3 object store  [default:
-                       pangeo-bench-local/test_write]
-
-  --profile TEXT       Profile for accessing S3 object store  [default:
-                       default]
-
-  --endpoint_url TEXT  Endpoint url of S3 object store  [default:
-                       https://***.ucar.edu]
-
-  --config_file PATH   Config file includes all other options, if not
-                       provided, you have to specify all other options from
-                       command lines
-
-  --help               Show this message and exit.
 ```
 ## Running the Benchmarks
 ### from jupyter notebook.
