@@ -1,5 +1,7 @@
+import importlib
 import itertools
 import shutil
+import sys
 
 import dask.array as da
 import numpy as np
@@ -41,16 +43,6 @@ def readfile(ds):
     null_store['foo'] = 'bar'
     future = da.store(ds, null_store, lock=False, compute=False)
     future.compute()
-
-
-def get_filelist(fs, io_format, root, chunk_size):
-    if io_format == 'zarr':
-        fileObjs = fs.glob(f'{root}/sst.{chunk_size}*.zarr')
-    elif (io_format == 'netcdf') & (fs.protocol[0] == 's3'):
-        # zarr_flist = list(filter(lambda x: subs in x, fs.glob(f'{root}/*')))
-        fileObjs = [fs.open(p) for p in fs.glob(f'{root}/sst.{chunk_size}*.nc')]
-
-    return fileObjs
 
 
 def openfile(fs, io_format, root, chunks, chunk_size):
@@ -127,15 +119,21 @@ def deletefile(fs, io_format, root, filename):
 
 
 def split_by_chunks(dataset):
-    """
-    COPIED from https://github.com/pydata/xarray/issues/1093#issuecomment-259213382
+    """COPIED from https://github.com/pydata/xarray/issues/1093#issuecomment-259213382
+       split the dataset to 11 files if the dataset is large, or keep as one
+
+    Parameters
+    ----------
+    dataset: xarray dataset
+        split the given dataset.
     """
     chunk_slices = {}
+    chunk_units = 10
     for dim, chunks in dataset.chunks.items():
         slices = []
         start = 0
-        if len(chunks) > 10:
-            chunk_range = int(len(chunks) / 10)
+        if len(chunks) > chunk_units:
+            chunk_range = int(len(chunks) / chunk_units)
         else:
             chunk_range = 1
         for i in range(len(chunks) - chunk_range + 1):
@@ -151,10 +149,63 @@ def split_by_chunks(dataset):
 
 
 def create_filepath(ds, prefix='filename', root_path='.'):
+    """Generate a filepath when given an xarray dataset
+
+    Parameters
+    ----------
+    ds: xarray dataset
+    prefix : prefix of the output file name
+    root_path : path to the output file. Defaults to current directory
     """
-    Generate a filepath when given an xarray dataset
-    """
+
     start = pd.to_datetime(str(ds.time.data[0])).strftime('%Y-%m-%d')
     end = pd.to_datetime(str(ds.time.data[-1])).strftime('%Y-%m-%d')
     filepath = f'{root_path}/{prefix}_{start}_{end}.nc'
     return filepath
+
+
+def get_version(file=sys.stdout):
+    """print the version of benchmarking and its dependencies.
+       Adapted from intake-esm/utils.py
+
+    Parameters
+    ----------
+    file : file-like, optional
+        print to the given file-like object. Defaults to sys.stdout.
+    """
+
+    deps = [
+        ('dask', lambda mod: mod.__version__),
+        ('distributed', lambda mod: mod.__version__),
+        ('fsspec', lambda mod: mod.__version__),
+        ('gcsfs', lambda mod: mod.__version__),
+        ('netCDF4', lambda mod: mod.__version__),
+        ('numpy', lambda mod: mod.__version__),
+        ('pandas', lambda mod: mod.__version__),
+        ('s3fs', lambda mod: mod.__version__),
+        ('xarray', lambda mod: mod.__version__),
+        ('zarr', lambda mod: mod.__version__),
+    ]
+
+    deps_blob = []
+    deps_ver = []
+    for (modname, ver_f) in deps:
+        try:
+            if modname in sys.modules:
+                mod = sys.modules[modname]
+            else:
+                mod = importlib.import_module(modname)
+        except Exception:
+            deps_blob.append(modname)
+            deps_ver.append(None)
+        else:
+            try:
+                ver = ver_f(mod)
+                deps_blob.append(modname)
+                deps_ver.append(ver)
+            except Exception:
+                deps_blob.append(modname)
+                deps_ver.append('installed')
+    for k, stat in zip(deps_blob, deps_ver):
+        print(f'{k}: {stat}', file=file)
+    return deps_blob, deps_ver

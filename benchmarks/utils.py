@@ -17,6 +17,7 @@ from .ops import (
     anomaly,
     climatology,
     deletefile,
+    get_version,
     openfile,
     readfile,
     spatial_mean,
@@ -247,7 +248,6 @@ class Runner:
                                         maxcore_per_node=maxcore_per_node,
                                         spil=spil,
                                         version=__version__,
-                                        env_export=env_export_filename,
                                     ):
                                         fname = f'{chunk_size}{chunking_scheme}{filesystem}{num}'
                                         if op.__name__ == 'writefile':
@@ -262,6 +262,8 @@ class Runner:
                         logger.warning('Computation done')
                         self.client.cancel(ds)
                         temp_df = timer.dataframe()
+                        deps_blob, deps_ver = get_version()
+                        temp_df[deps_blob] = pd.DataFrame([deps_ver], index=temp_df.index)
                         temp_df.to_csv(csv_filename, index=False)
 
                 logger.warning(f'Persisted benchmark result file: {csv_filename}')
