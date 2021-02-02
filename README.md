@@ -46,28 +46,55 @@ benchmark-configs/
 
 In case you are interested in running the benchmarks on another system, you will need to create a new YAML file for your system with the right configurations. See the existing config files for reference.
 
-## Running the Benchmarks 
+## Running the Benchmarks
 ### from command line
 
 To run the benchmarks, a command utility `pangeobench` is provided in this repository.
-To use it, you simply need to specify the location of the benchmark configuration file. For example:
+To use it to benchmark Pangeo computation, you need to specify subcommand `run` and the location of the benchmark configuration
 
 ```bash
-./pangeobench benchmark-configs/cheyenne.yaml
+./pangebench run benchmark-configs/cheyenne.computation.yaml
+```
+
+
+To use it to benchmark Pangeo IO with weak scaling analysis, you need to specify subcommand `run` and the location of the benchmark configuration
+
+
+```bash
+./pangeobench run benchmark-configs/cheyenne.readwrite.yaml
+```
+
+To use it to benchmark Pangeo IO with strong scaling analysis, you need the following three steps
+
+First, create data files:
+```bash
+./pangeobench run benchmark-configs/cheyenne.write.yaml
+```
+Second, upload data files to S3 object store if you need to benchmark S3 object store:
+```bash
+./pangebench upload --config_file benchmark-configs/cheyenne.write.yaml
+```
+
+Last, read data files:
+```bash
+./pangeobench run benchmark-configs/cheyenne.read.yaml
 ```
 
 ```bash
 $ ./pangeobench --help
-Usage: pangeobench [OPTIONS] CONFIG_FILE
+Usage: pangeobench [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --help  Show this message and exit.
+
+Commands:
+  run     Run benchmarking
+  upload  Upload benchmarking files from local directory to S3 object store
 ```
+## Running the Benchmarks
+### from jupyter notebook.
 
-## Running the Benchmarks 
-### from jupyter notebook.  
-
-To run the benchmarks from jupyter notebook, install 'pangeo-bench' kernel to your jupyter notebook enviroment, then start run.ipynb notebook.  You will need to specify the configuration file as described above in your notebook.  
+To run the benchmarks from jupyter notebook, install 'pangeo-bench' kernel to your jupyter notebook enviroment, then start run.ipynb notebook.  You will need to specify the configuration file as described above in your notebook.
 
 To install your 'pangeo-bench' kernel to your jupyter notebook enviroment you'll need to connect a terminal of your HPC enviroment and run following command.
 
@@ -90,4 +117,4 @@ Benchmark results are persisted in the `results` directory by default. The exact
 
 ## Visualization
 
-Visualisation can be done using jupyter notebooks placed in analysis directories.  
+Visualisation can be done using jupyter notebooks placed in analysis directories.

@@ -1,4 +1,7 @@
+awscli
 xarray>=0.15.1
 click
 dask
 distributed
+s3fs>=0.4.2
+fsspec>=0.7.3

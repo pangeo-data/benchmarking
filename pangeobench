@@ -2,17 +2,100 @@
 
 """The pangeobench script."""
 
-import click
+import subprocess
+
+import yaml
 
 from benchmarks.utils import Runner
 
+import click  # isort:skip
 
-@click.command()
+
+# Read in options from the config file as default values for upload command
+def CommandWithConfigFile(config_file_param_name):
+    class CustomCommandClass(click.Command):
+        def invoke(self, ctx):
+            config_file = ctx.params[config_file_param_name]
+            if config_file is not None:
+                with open(config_file) as f:
+                    config_data = yaml.safe_load(f)
+                    for param, value in ctx.params.items():
+                        print('default1', param, value)
+                        if value is None and param in config_data:
+                            ctx.params[param] = config_data[param]
+                            print('default', ctx.params[param])
+
+            # return super(CustomCommandClass, self).invoke(ctx)
+            return super().invoke(ctx)
+
+    return CustomCommandClass
+
+
+@click.group()
+def main():
+    pass
+
+
+@main.command()
 @click.argument('config_file', type=click.Path(exists=True))
-def cli(config_file):
+def run(config_file):
+    """Run benchmarking"""
     runner = Runner(config_file)
     runner.run()
 
 
+@main.command(cls=CommandWithConfigFile('config_file'))
+@click.option(
+    '--local_dir',
+    default='test_write',
+    type=click.Path(),
+    help='Local directory to upload from',
+    show_default=True,
+)
+@click.option(
+    '--bucket',
+    default='pangeo-bench-local/test_write',
+    type=str,
+    help='Bucket and directory name of S3 object store',
+    show_default=True,
+)
+@click.option(
+    '--profile',
+    default='default',
+    type=str,
+    help='Profile for accessing S3 object store',
+    show_default=True,
+)
+@click.option(
+    '--endpoint_url',
+    default='https://***.ucar.edu',
+    type=str,
+    help='Endpoint url of S3 object store',
+    show_default=True,
+)
+@click.option(
+    '--config_file',
+    default=None,
+    type=click.Path(),
+    help='Config file includes all other options, if not provided, you have to specify all other options from command lines',
+)
+# @click.pass_context
+def upload(**commands):
+    """Upload benchmarking files from local directory to S3 object store"""
+    cmd = [
+        'aws',
+        '--endpoint-url',
+        f"{commands['endpoint_url']}",
+        '--profile',
+        f'{commands["profile"]}',
+        's3',
+        'cp',
+        '--recursive',
+        f"{commands['local_dir']}",
+        f"s3://{commands['bucket']}",
+    ]
+    subprocess.check_call(cmd)
+
+
 if __name__ == '__main__':
-    cli()
+    main()

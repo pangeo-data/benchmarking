@@ -9,18 +9,23 @@ from distributed.utils import parse_bytes
 
 
 def timeseries(
+    fixed_totalsize=False,
     chunk_per_worker=10,
     chunk_size='128 MB',
     num_nodes=1,
     worker_per_node=1,
     chunking_scheme=None,
-    lat=320,
-    lon=384,
+    io_format=None,
+    store_scheme=None,
+    # lat=320,
+    # lon=384,
+    lat=2560,
+    lon=3840,
     start='1980-01-01',
     freq='1H',
     nan=False,
 ):
-    """ Create synthetic Xarray dataset filled with random
+    """Create synthetic Xarray dataset filled with random
     data.
 
     Parameters
@@ -79,7 +84,6 @@ def timeseries(
     itemsize = dt.itemsize
     chunk_size = parse_bytes(chunk_size)
     total_bytes = chunk_size * num_nodes * worker_per_node * chunk_per_worker
-    # total_bytes = chunk_size * num_nodes * worker_per_node
     size = total_bytes / itemsize
     timesteps = math.ceil(size / (lat * lon))
     shape = (timesteps, lon, lat)
@@ -105,12 +109,14 @@ def timeseries(
         dims=['time', 'lon', 'lat'],
         coords={'time': times, 'lon': lons, 'lat': lats},
         name='sst',
-        encoding=None,
-        attrs={'units': 'baz units', 'description': 'a description'},
+        # encoding=None,
+        attrs={
+            'units': 'baz units',
+            'description': 'a description',
+            'history': 'created for compute benchmarking',
+        },
     ).to_dataset()
-    ds.attrs = {'history': 'created for compute benchmarking'}
-
-    return ds
+    return ds, chunks
 
 
 def randn(shape, chunks=None, nan=False, seed=0):
